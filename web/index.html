@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>공동영농 후보단지 시뮬레이터</title>
+  <meta name="description" content="읍면 농지 지도에서 공동영농 단지로 묶을 필지 조합을 제약 조건 하에 제안하는 시뮬레이터(해커톤 R4 초안)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M7 11h18M7 16h18M7 21h18M16 7v18' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>공동영농 후보단지 시뮬레이터</h1>
+      <span class="badge">서비스 초안</span>
+      <a class="navlink" href="operations.html">단지 운영 설계(확장) →</a>
+    </div>
+    <p class="status" id="status" aria-live="polite">준비 중…</p>
+  </header>
+
+  <div class="alert" id="alert" role="alert" hidden></div>
+
+  <main class="layout">
+    <aside class="panel controls" aria-label="데이터와 조건">
+      <section class="card">
+        <h2>1. 읍면 지도</h2>
+        <p class="hint">가상 읍면으로 바로 시험하거나, 팜맵 필지 GeoJSON을 불러옵니다.</p>
+        <div class="grid2">
+          <label>난수 시드<input type="number" id="seed" min="0" value="11"></label>
+          <label>농가 수<input type="number" id="farmers" min="10" max="2000" value="150"></label>
+        </div>
+        <button type="button" class="btn" id="btnDemo">가상 읍면 생성</button>
+        <div class="row">
+          <label class="btn ghost file">GeoJSON 불러오기
+            <input type="file" id="fileInput" accept=".json,.geojson,application/json">
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2. 단지 조건</h2>
+        <div id="constraintSliders" class="sliders"></div>
+        <label class="check"><input type="checkbox" id="requireRoad" checked> 도로 접속 필지 필수(C5)</label>
+        <label class="check"><input type="checkbox" id="includeUpland" checked> 밭 포함</label>
+        <fieldset>
+          <legend>참여 농가 수 계산</legend>
+          <label class="check small"><input type="radio" name="ownerMode" value="data" checked> 소유자 속성 사용(지자체 내부 데이터)</label>
+          <label class="check small"><input type="radio" name="ownerMode" value="proxy"> 필지 수로 추정(대리 지표)</label>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>3. 목적함수 가중치</h2>
+        <p class="hint">무엇을 더 중시할지 정합니다. 결과가 얼마나 흔들리는지는 검증 카드의 민감도에서 봅니다.</p>
+        <div id="weightSliders" class="sliders"></div>
+      </section>
+    </aside>
+
+    <section class="mapcol" aria-label="지도">
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="표시">
+          <label class="check small inline"><input type="checkbox" id="showTruth"> 정답 단지 경계</label>
+          <label class="check small inline"><input type="checkbox" id="showRoads" checked> 농로</label>
+          <label class="check small inline"><input type="checkbox" id="chkBasemap"> 배경지도</label>
+        </div>
+        <span class="muted small" id="solveInfo"></span>
+      </div>
+      <div class="mapwrap">
+        <div id="map"></div>
+        <div class="legend" id="legend"></div>
+        <div class="busy" id="busy" hidden><span class="spinner" aria-hidden="true"></span><span id="busyText">계산 중…</span></div>
+      </div>
+      <div class="mapfoot"><span class="muted" id="mapNote"></span></div>
+    </section>
+
+    <aside class="panel results" aria-label="결과">
+      <section class="card">
+        <h2>제안 결과</h2>
+        <div class="kpis" id="kpis"></div>
+      </section>
+
+      <section class="card">
+        <div class="cardhead">
+          <h2>후보 단지 순위</h2>
+          <button type="button" class="linkbtn" id="btnCsv">필지 목록 CSV</button>
+        </div>
+        <p class="hint">행을 누르면 지도에서 그 단지를 강조합니다.</p>
+        <div id="rank"></div>
+      </section>
+
+      <section class="card">
+        <h2 id="detailTitle">단지 상세</h2>
+        <div id="detail"><p class="empty">순위표나 지도에서 단지를 고르세요.</p></div>
+      </section>
+
+      <section class="card">
+        <div class="cardhead">
+          <h2>검증</h2>
+          <button type="button" class="btn small" id="btnValidate">검증 실행</button>
+        </div>
+        <div id="validation"><p class="empty">정답 단지 재현(F1·IoU), 베이스라인 비교, 민감도를 계산합니다.</p></div>
+      </section>
+
+      <section class="card notes">
+        <h2>읽는 법과 한계</h2>
+        <ul>
+          <li>결과는 결정이 아니라 <b>협의를 시작할 지도</b>입니다. 농가 동의와 마을 관계는 알고리즘 밖의 일입니다.</li>
+          <li>소득 증분은 점 추정 대신 보수·기준·낙관 3구간으로 보여 줍니다. 단가는 초안 가정값이며 KAMIS 가격·표준 단수로 바꿀 예정입니다.</li>
+          <li>가상 읍면과 정답 단지는 합성 데이터입니다. 재현 지표는 검증 절차 시연용이며 성능 주장이 아닙니다.</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="sites.js"></script>
+</body>
+</html>

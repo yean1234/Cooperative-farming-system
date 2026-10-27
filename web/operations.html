@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>단지 운영 설계</title>
+  <meta name="description" content="경작권 교환, 작목 단지화, 조합원 수익 배분을 함께 설계하는 공동영농 의사결정 지원 서비스 초안">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M7 11h18M7 16h18M7 21h18M16 7v18' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>단지 운영 설계</h1>
+      <span class="badge">확장 기능</span>
+      <a class="navlink" href="index.html">← 후보단지 시뮬레이터</a>
+    </div>
+    <p class="status" id="status" aria-live="polite">준비 중…</p>
+  </header>
+
+  <div class="alert" id="alert" role="alert" hidden></div>
+
+  <main class="layout">
+    <!-- 왼쪽: 입력 -->
+    <aside class="panel controls" aria-label="입력과 최적화 조건">
+      <section class="card">
+        <h2>1. 들녘 데이터</h2>
+        <p class="hint">가상 들녘으로 바로 시험하거나, 필지 GeoJSON을 불러옵니다.</p>
+        <div class="grid2">
+          <label>농가 수<input type="number" id="dmFarmers" min="6" max="80" value="30"></label>
+          <label>참여율(%)<input type="number" id="dmParticipation" min="10" max="100" value="60"></label>
+          <label>소유지 분산도<input type="number" id="dmFrag" min="0" max="1" step="0.05" value="0.75"></label>
+          <label>난수 시드<input type="number" id="dmSeed" min="0" value="7"></label>
+        </div>
+        <button type="button" class="btn" id="btnDemo">가상 들녘 생성</button>
+        <div class="row">
+          <label class="btn ghost file">파일 불러오기
+            <input type="file" id="fileInput" accept=".json,.geojson,application/json">
+          </label>
+          <button type="button" class="btn ghost" id="btnExport">데이터 내보내기</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2. 최적화 조건</h2>
+        <div class="grid2">
+          <label>면적 허용오차(±%)<input type="number" id="stAreaTol" min="0" max="50" step="1" value="10"></label>
+          <label>평가가치 허용오차(±%)<input type="number" id="stValueTol" min="0" max="50" step="1" value="10"></label>
+        </div>
+        <fieldset>
+          <legend>법인 경작 면적 대비 작목 비율(%)</legend>
+          <table class="bounds" id="boundsTable">
+            <thead><tr><th scope="col">작목</th><th scope="col">하한</th><th scope="col">상한</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </fieldset>
+        <label class="check"><input type="checkbox" id="stMerge" checked> 법인 경작지 논두렁 정비(대구획화) 가정</label>
+        <details>
+          <summary>세부 가중치</summary>
+          <div class="grid2">
+            <label>단지화 보상(원/m)<input type="number" id="stContig" min="0" step="100" value="1000"></label>
+            <label>습해 벌점(원/m)<input type="number" id="stSeep" min="0" step="100" value="1500"></label>
+            <label>교환 최소화 가중치<input type="number" id="stChange" min="0" max="10" step="0.05" value="0.15"></label>
+            <label>탐색 반복 수<input type="number" id="stIter" min="500" max="400000" step="1000" value="40000"></label>
+            <label>배분 시 노동 비중(%)<input type="number" id="stLabor" min="0" max="100" step="5" value="20"></label>
+            <label>샤플리 표본 수<input type="number" id="stShapley" min="10" max="2000" step="10" value="150"></label>
+          </div>
+        </details>
+        <button type="button" class="btn primary" id="btnRun">최적화 실행</button>
+      </section>
+
+      <section class="card notes">
+        <h2>읽는 법</h2>
+        <ul>
+          <li><b>개별영농</b>은 지금처럼 농가마다 자기 필지를 따로 짓는 경우입니다.</li>
+          <li><b>공동영농</b>은 조합원 필지를 법인이 한꺼번에 짓는 경우입니다.</li>
+          <li><b>1:1 교환</b>은 두 농가가 서로 이득일 때만 필지를 맞바꾸는 방식입니다.</li>
+          <li><b>다자간 교환</b>은 플랫폼이 여러 농가의 교환을 한 번에 설계하는 제안 방식입니다. 어느 농가도 교환 전보다 불리해지지 않게 제한합니다.</li>
+        </ul>
+      </section>
+    </aside>
+
+    <!-- 가운데: 지도 -->
+    <section class="mapcol" aria-label="지도">
+      <div class="toolbar">
+        <div class="seg" id="scenarioSeg" role="group" aria-label="시나리오"></div>
+        <div class="seg" id="viewSeg" role="group" aria-label="지도 보기">
+          <button type="button" data-view="cultivator" aria-pressed="true">경작자</button>
+          <button type="button" data-view="crop" aria-pressed="false">작목</button>
+          <button type="button" data-view="exchange" aria-pressed="false">교환</button>
+          <button type="button" data-view="route" aria-pressed="false">작업 동선</button>
+        </div>
+      </div>
+      <div class="mapwrap">
+        <div id="map"></div>
+        <div class="legend" id="legend" aria-live="polite"></div>
+        <div class="busy" id="busy" hidden><span class="spinner" aria-hidden="true"></span><span id="busyText">계산 중…</span></div>
+      </div>
+      <div class="mapfoot">
+        <label class="check small"><input type="checkbox" id="chkBasemap"> 배경지도(OpenStreetMap)</label>
+        <span class="muted" id="mapNote"></span>
+      </div>
+    </section>
+
+    <!-- 오른쪽: 결과 -->
+    <aside class="panel results" aria-label="결과">
+      <section class="card">
+        <div class="cardhead">
+          <h2 id="kpiTitle">핵심 지표</h2>
+          <div class="seg small" id="basisSeg" role="group" aria-label="지표 범위">
+            <button type="button" data-basis="total" aria-pressed="true">들녘 전체</button>
+            <button type="button" data-basis="group" aria-pressed="false">조합원 필지</button>
+          </div>
+        </div>
+        <div class="kpis" id="kpis"></div>
+        <div class="flags" id="flags"></div>
+      </section>
+
+      <section class="card">
+        <div class="cardhead">
+          <h2>시나리오 비교</h2>
+          <button type="button" class="linkbtn" id="toggleCompareTable" aria-expanded="false">표로 보기</button>
+        </div>
+        <div id="compare" class="multiples"></div>
+        <div id="compareTable" hidden></div>
+      </section>
+
+      <section class="card">
+        <h2>작목 단지 배치</h2>
+        <div id="zoning"></div>
+      </section>
+
+      <section class="card">
+        <h2>경작권 교환 내역</h2>
+        <div id="exchange"></div>
+      </section>
+
+      <section class="card">
+        <div class="cardhead">
+          <h2>조합원 수익 배분</h2>
+          <button type="button" class="linkbtn" id="toggleShareTable" aria-expanded="false">표로 보기</button>
+        </div>
+        <div class="seg small wrap" id="ruleSeg" role="group" aria-label="배분 기준"></div>
+        <div id="sharing"></div>
+        <div id="shareTable" hidden></div>
+      </section>
+
+      <section class="card notes">
+        <h2>가정과 한계</h2>
+        <ul>
+          <li>가상 들녘은 합성 데이터입니다. 실제 필지·소유자와 무관합니다.</li>
+          <li>작목 소득, 기계 작업능률, 임차료율은 초안 가정값입니다. 농촌진흥청 소득자료 등으로 교체해야 합니다.</li>
+          <li>경작권(임대차) 교환이 기본입니다. 소유권 교환은 쌍방 가액 차이가 큰 쪽의 1/4 이하여야 양도세가 비과세됩니다(소득세법 시행령 제153조). 1:1 교환에는 이 요건을 적용했습니다.</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="operations.js"></script>
+</body>
+</html>
