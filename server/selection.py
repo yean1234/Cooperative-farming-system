@@ -26,11 +26,27 @@ import numpy as np
 from .geo import LocalProjection, adjacency, open_ring, ring_area, ring_centroid
 
 SOIL_MULT = {1: 1.00, 2: 0.95, 3: 0.88, 4: 0.80}
-# 공동영농 전환 시 ha당 연 소득 증분(만원) [보수, 기준, 낙관]. 초안 가정값 — KAMIS 가격·표준 단수로 교체 예정.
+# 공동영농 전환 시 ha당 연 소득 증분(만원) [보수, 기준, 낙관]. 소득은 직불금을 뺀 값이라 직불금은 따로 더했다.
+# 근거(원/10a, ×10 → 만원/ha 환산 시 ÷1,000):
+#   [A] 국가데이터처 2025년산 논벼 생산비조사(2026.3.27): 벼 소득 736,304(2024년산 571,863).
+#       재배규모별 직접생산비(천원/10a) 0.5~1.0ha 765, 전국 624, 3.0~5.0ha 566, 5ha 이상 508. 차이는 대부분 위탁영농비(348→56).
+#   [B] 농촌진흥청 2025 농산물소득자료집: 콩 소득 431,817, 밀 소득 121,160.
+#   [C] 농식품부 공고 제2026-127호 전략작물직불금(만원/ha): 하계 두류·가루쌀 200, 동계 밀 100, 이모작 +100.
 INCOME_PER_HA = {
-    "paddy_double": (80, 200, 450),  # 논, 배수 양호·보통: 하계 콩·가루쌀 + 동계 밀 등 이모작 가능
-    "paddy_single": (20, 50, 100),  # 논, 배수 불량: 벼 단작 유지, 기계 작업비 절감 위주
-    "upland": (40, 120, 300),  # 밭
+    # 논, 배수 양호·보통. 보수: 이모작이 손해면 벼를 유지하고 규모화 절감만(3~5ha 농가 → 5ha 이상, 566−508).
+    # 기준: 콩+밀 이모작 (431,817+121,160−736,304)/1,000 + 직불 400 = 217.
+    # 낙관: 같은 이모작에서 벼 소득이 2024년산 수준(571,863)일 때 = 381.
+    "paddy_double": (58, 217, 381),
+    # 논, 배수 불량: 벼 단작 유지, 규모화로 줄어드는 직접생산비. 참여 농가의 현재 규모별로
+    # 3~5ha(566) / 전국 평균(624) / 0.5~1.0ha(765) → 5ha 이상(508).
+    "paddy_single": (58, 116, 257),
+    # 밭: 공동영농 전환 효과의 공식 통계를 찾지 못해 초안 가정값을 유지한다.
+    "upland": (40, 120, 300),
+}
+INCOME_SOURCES = {
+    "paddy_double": "2025년산 논벼 생산비조사·2025 농산물소득자료집·2026 전략작물직불금",
+    "paddy_single": "2025년산 논벼 생산비조사(재배규모별 직접생산비)",
+    "upland": "가정값(근거 자료 없음)",
 }
 INCOME_REF = 200.0
 SLOPE_HARD = 15.0
@@ -563,6 +579,10 @@ def _report(R, T, s, complexes, assign, eligible, fail_reason, secs) -> dict:
 
     elig_area = float(R.area[eligible].sum())
     in_area = float(sum(C.A for C in complexes))
+    if s.owner_mode == "proxy" or not R.has_owner:
+        owners_included = int(sum(C.n_owners() for C in complexes))  # 단지별 추정치의 합
+    else:
+        owners_included = len({R.oid[i] for C in complexes for i in C.members})
     return {
         "parcel_ids": R.ids,
         "assign": assign.tolist(),
@@ -575,11 +595,12 @@ def _report(R, T, s, complexes, assign, eligible, fail_reason, secs) -> dict:
             "eligible_area_ha": round(elig_area / 1e4, 1),
             "total_area_ha": round(float(R.area.sum()) / 1e4, 1),
             "coverage": round(in_area / elig_area, 3) if elig_area else 0.0,
-            "owners_included": int(len({R.oid[i] for C in complexes for i in C.members})),
+            "owners_included": owners_included,
             "income_musd": [round(sum(c["income_musd"][j] for c in out_cx), 1) for j in range(3)],
             "total_score": round(sum(C.score() for C in complexes), 2),
             "seconds": round(secs, 3),
         },
+        "income_basis": INCOME_SOURCES,
         "settings": asdict(s),
     }
 

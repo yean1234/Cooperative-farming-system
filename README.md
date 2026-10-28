@@ -2,6 +2,12 @@
 
 공동영농 법인이 들녘 지도 위에서 세 가지를 함께 설계하도록 돕는 웹 서비스 초안이다(한동대 × 포스텍 해커톤 R4).
 
+주 기능인 **후보단지 시뮬레이터**(첫 화면)는 읍면 필지 지도에서 공동영농 단지로 묶을 필지 조합을 제약 조건에 맞춰 제안한다.
+기본 지도는 공개 실측 자료로 만든 **포항시 흥해읍 들녘**(팜맵 필지 2,666개, 489ha)이다.
+출처와 인증키 발급 방법은 [docs/real-data.md](docs/real-data.md)에 있다.
+
+확장 기능인 **단지 운영 설계**(`operations.html`)는 선정된 단지에서 아래 세 가지를 설계한다.
+
 - **경작권 교환**: 이웃 농가와 필지를 맞바꿔 경작지를 한 덩어리로 모은다. 교환 전보다 불리해지는 농가는 없게 한다.
 - **작목 단지 배치**: 법인 땅에 벼·가루쌀·콩·조사료를 단지로 배치한다. 담수 작목과 밭 작목이 맞닿지 않게 한다.
 - **수익 배분**: 배분 기준별로 조합원 각자가 개별영농보다 나아지는지 비교한다.
@@ -14,7 +20,8 @@
 |---|---|
 | ![현황 동선](docs/images/route-before.png) | ![교환 후 동선](docs/images/route-after.png) |
 
-> 화면의 들녘은 합성 데이터(가상 들녘)다. 실제 필지·소유자와 무관하다. 작목 소득·기계 비용 같은 파라미터도 초안 가정값이다.
+> 위 화면(단지 운영 설계)의 들녘은 합성 데이터(가상 들녘)다. 실제 필지·소유자와 무관하다. 작목 소득·기계 비용 같은 파라미터도 초안 가정값이다.
+> 후보단지 시뮬레이터의 실측 지도에도 소유자 정보는 없다(농지대장 비공개). 참여 농가 수는 필지 수로 추정한다.
 
 ## 실행
 
@@ -25,12 +32,14 @@ python -m pip install -r requirements.txt
 python -m server            # http://127.0.0.1:8000 을 브라우저로 연다
 ```
 
-페이지를 열면 가상 들녘을 만들고 최적화까지 자동으로 돌린다. 약 4초 걸린다.
+첫 화면(후보단지 시뮬레이터)은 흥해 실측 지도를 불러와 바로 후보 단지를 계산한다. `?map=demo`를 붙이면 가상 읍면으로 연다.
+단지 운영 설계 화면(`operations.html`)은 가상 들녘을 만들고 최적화까지 자동으로 돌린다. 약 4초 걸린다.
 지도 라이브러리(Leaflet)는 CDN에서 받으므로 인터넷 연결이 필요하다.
 
 명령줄에서 결과표만 볼 수도 있다.
 
 ```bash
+python -m server.sites_cli --geojson data/regions/heunghae.json --proxy-owners   # 실측 지도 후보단지
 python -m server.cli --seed 7
 python -m server.cli --scenario my_field.json --out out/result.json
 ```
@@ -73,14 +82,19 @@ server/
   zoning.py     작목 단지화 혼합정수계획(SciPy HiGHS)
   metrics.py    블록, 농기계 작업시간·이동거리, 순회 관리, 소득·임차료 정산
   sharing.py    수익 배분 4가지 기준(샤플리 값 몬테카를로 근사 포함)
-  geo.py        좌표 변환, 면적, 필지 인접 판정(numpy)
+  geo.py        좌표 변환(UTM-K 포함), 면적, 필지 인접 판정(numpy)
   model.py      시나리오 JSON ↔ 내부 모델, 입력 검증
   demo.py       가상 들녘 생성기
   params.py     작목 소득·직불금·기계 비용 등 파라미터(초안 가정값)
   cli.py        명령줄 비교 도구
+  selection.py  후보단지 선정 엔진(C1~C8 제약, 소득 증분 근거 포함)
+  sites_api.py  후보단지 API(/api/sites/*)
+  region_demo.py 가상 읍면 생성기
+  realdata/     실측 지도 빌더: 팜맵 SHP, OSM 도로, Copernicus DEM, 흙토람·연속지적도 API
+data/regions/   실측 지도 JSON(흥해)
 web/            화면(HTML·CSS·JS, 빌드 과정 없음)
-tests/          pytest 21개
-docs/           기획 문서와 화면 이미지
+tests/          pytest 38개
+docs/           기획 문서, 실측 데이터 연동 문서, 화면 이미지
 ```
 
 ## API
@@ -89,6 +103,10 @@ docs/           기획 문서와 화면 이미지
 |---|---|---|
 | GET | `/api/health` | 서버 상태 |
 | GET | `/api/defaults` | 기본 설정과 파라미터 |
+| GET | `/api/sites/regions` | 저장소의 실측 지도 목록(`data/regions/*.json`) |
+| POST | `/api/sites/region` | 실측 지도 불러오기. 본문 예: `{"name": "heunghae"}` → `region_id` |
+| POST | `/api/sites/demo` · `/api/sites/import` | 가상 읍면 생성 · GeoJSON 불러오기 → `region_id` |
+| POST | `/api/sites/solve` · `/api/sites/validate` | `{"region_id": …, "settings": …}` → 후보 단지 · 재현 검증 |
 | POST | `/api/scenario/demo` | 가상 들녘 생성. 본문 예: `{"seed": 7, "n_farmers": 30, "participation": 0.6, "fragmentation": 0.75}` |
 | POST | `/api/scenario/import` | GeoJSON 또는 시나리오 JSON 검증, 인접 관계 계산 |
 | POST | `/api/optimize` | `{"scenario": …, "settings": …}` → 네 시나리오 결과와 수익 배분 |
@@ -97,7 +115,11 @@ docs/           기획 문서와 화면 이미지
 
 ## 실제 들녘 데이터 넣기
 
-필지 경계는 EPSG:4326 GeoJSON으로 준비한다. 연속지적도나 팜맵에서 받아 QGIS로 잘라 내면 된다.
+후보단지 시뮬레이터용 실측 지도는 `python -m server.realdata.build`로 만든다.
+팜맵 SHP와 OSM·DEM은 키 없이 쓴다. 흙토람(배수·경사·적성등급)은 공공데이터포털 키, 연속지적도(지목·공시지가)는 브이월드 키가 필요하다.
+키 발급 경로, 변환 규칙, 소득 근거는 [docs/real-data.md](docs/real-data.md)에 있다.
+
+단지 운영 설계 화면에 넣을 필지 경계는 EPSG:4326 GeoJSON으로 준비한다. 연속지적도나 팜맵에서 받아 QGIS로 잘라 내면 된다.
 필지마다 `owner`가 반드시 있어야 한다. 나머지 속성(`land_type`, `soil_grade`, `drainage`, `land_value` 등)과 조합원 정보 형식은 [기획 문서 5.2절](docs/service-plan.md#52-입력-형식)에 있다.
 화면의 **데이터 내보내기**로 받은 가상 들녘 JSON을 서식 예시로 쓰면 편하다.
 
@@ -106,5 +128,6 @@ docs/           기획 문서와 화면 이미지
 ## 알려진 한계
 
 - 가상 들녘과 파라미터는 시연용 가정이다. 실제 들녘 검증 전에는 결과 수치를 정책 근거로 쓰지 않는다.
+- 흥해 실측 지도의 흙토람 값은 PNU 2,383개 중 950개만 직접 조회했고, 나머지는 인접 필지 값이다(개발계정 하루 1,000건). 같은 빌드를 이틀 더 돌리면 모두 직접 조회 값이 된다.
 - 동선은 블록 중심을 방문 순서대로 이은 근사다. 실제 도로망을 쓰지 않는다.
 - 하계 작목 한 작기만 배치한다. 이모작, 작업 일정, 소유권 교환 절차는 다음 단계다.

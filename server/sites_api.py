@@ -5,10 +5,12 @@
 """
 from __future__ import annotations
 
+import json
 import threading
 import uuid
 from collections import OrderedDict
 from dataclasses import fields
+from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel, Field
@@ -18,6 +20,9 @@ from .selection import Region, SiteSettings, solve
 from .selection_eval import validate
 
 router = APIRouter(prefix="/api/sites", tags=["후보단지 시뮬레이터"])
+
+# python -m server.realdata.build 로 만든 실측 지도
+REGIONS_DIR = Path(__file__).resolve().parent.parent / "data" / "regions"
 
 _CACHE: "OrderedDict[str, Region]" = OrderedDict()
 _LOCK = threading.Lock()
@@ -75,6 +80,10 @@ class SolveIn(BaseModel):
     settings: SiteSettingsIn = Field(default_factory=SiteSettingsIn)
 
 
+class RegionIn(BaseModel):
+    name: str = Field(..., pattern=r"^[A-Za-z0-9_-]{1,64}$")
+
+
 def _payload(scn: dict, region: Region, rid: str) -> dict:
     meta = dict(scn.get("meta") or {})
     meta.setdefault("name", "불러온 지도")
@@ -89,6 +98,29 @@ def _payload(scn: dict, region: Region, rid: str) -> dict:
 def demo(req: DemoIn | None = None) -> dict:
     req = req or DemoIn()
     scn = generate_region(seed=req.seed, n_farmers=req.n_farmers)
+    region = Region(scn)
+    return _payload(scn, region, _store(region))
+
+
+@router.get("/regions")
+def list_regions() -> list[dict]:
+    """저장소에 들어 있는 실측 지도 목록."""
+    out = []
+    for p in sorted(REGIONS_DIR.glob("*.json")):
+        try:
+            meta = json.loads(p.read_text(encoding="utf-8")).get("meta") or {}
+        except (OSError, ValueError):
+            continue
+        out.append({"name": p.stem, "title": meta.get("name", p.stem), "n_parcels": meta.get("n_parcels"), "total_area_ha": meta.get("total_area_ha"), "built": meta.get("built")})
+    return out
+
+
+@router.post("/region")
+def load_region(req: RegionIn) -> dict:
+    path = REGIONS_DIR / f"{req.name}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"실측 지도 '{req.name}'이 없습니다. python -m server.realdata.build 로 먼저 만들어 주세요.")
+    scn = json.loads(path.read_text(encoding="utf-8"))
     region = Region(scn)
     return _payload(scn, region, _store(region))
 

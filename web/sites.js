@@ -2,7 +2,7 @@
 
 /*
  * 공동영농 후보단지 시뮬레이터 화면
- * API: POST /api/sites/demo, /api/sites/import, /api/sites/solve, /api/sites/validate
+ * API: GET /api/sites/regions, POST /api/sites/region, /api/sites/demo, /api/sites/import, /api/sites/solve, /api/sites/validate
  */
 
 const CONSTRAINTS = [
@@ -73,6 +73,11 @@ async function api(path, body) {
     throw new Error(d);
   }
   return data;
+}
+async function apiGet(path) {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(res.statusText);
+  return res.json();
 }
 const setStatus = (t) => ($("status").textContent = t);
 function showAlert(msg) {
@@ -224,15 +229,20 @@ function onParcelClick(f, layer) {
   const r = state.result;
   const k = r ? r.assign[i] : 0;
   if (k) selectComplex(k, false);
+  const synthetic = state.region.meta.synthetic;
+  const src = (s) => (s ? ` · ${s}` : "");
   const rows = [
-    ["지목·이용", `${p.land_type || "-"} · ${p.land_use || "-"}`],
+    ["지목·이용", `${p.jimok || p.land_type || "-"} · ${p.land_use || "-"}`],
     ["면적", `${nf2.format(areaHa(f))}ha`],
-    ["평균 경사", p.slope !== undefined ? `${nf1.format(p.slope)}%` : "-"],
-    ["배수 등급", DRAIN[p.drainage] || "-"],
-    ["토양 적성", p.soil_grade ? `${p.soil_grade}등급` : "-"],
-    ["도로 접속", p.road_access ? "있음" : "없음"],
-    ["소유 농가", p.owner ? `${p.owner}(가상)` : "정보 없음"],
+    ["경사", p.slope !== undefined ? `${p.slope_class || `${nf1.format(p.slope)}%`}${src(p.slope_source)}` : "-"],
+    ["배수 등급", p.drainage !== undefined ? `${p.drainage_class || DRAIN[p.drainage]}${src(p.drainage_source)}` : synthetic ? "-" : "미확보(보통으로 계산)"],
+    ["토양 적성", p.soil_grade ? `${p.suitability_grade || p.soil_grade}등급${src(p.soil_source)}` : synthetic ? "-" : "미확보"],
+    ["도로 접속", p.road_access ? `있음${p.road_source ? ` · ${p.road_source}` : ""}` : "없음"],
+    ["소유 농가", p.owner ? `${p.owner}${synthetic ? "(가상)" : ""}` : "비공개(필지 수로 추정)"],
   ];
+  if (p.consolidated !== undefined) rows.splice(2, 0, ["경지정리", p.consolidated ? "됨" : "안 됨"]);
+  if (!synthetic && p.land_value) rows.push(["공시지가", `${nf0.format(p.land_value)}원/㎡`]);
+  if (p.pnu) rows.push(["PNU", p.pnu]);
   const box = h(
     "div",
     { class: "popup" },
@@ -378,7 +388,7 @@ async function runSolve() {
     if (state.selected && !res.complexes.some((c) => c.id === state.selected)) state.selected = null;
     $("solveInfo").textContent = `단지 ${res.summary.n_complexes}곳 · ${nf2.format(res.summary.seconds)}초`;
     renderAllResults();
-    showAlert("");
+    showAlert(regionWarnings());
   } catch (err) {
     if (seq === state.reqSeq) showAlert(`계산하지 못했습니다: ${err.message}`);
   } finally {
@@ -401,9 +411,61 @@ function setRegion(reg) {
   $("btnValidate").disabled = !reg.meta.truth_complexes;
   const m = reg.meta;
   setStatus(`${m.name} · 필지 ${nf0.format(m.n_parcels)}개 · ${nf1.format(m.total_area_ha)}ha`);
-  $("mapNote").textContent = m.synthetic ? "가상 데이터 · 실제 지형·소유·단지와 무관" : "";
-  showAlert((m.warnings || []).length ? `확인 필요: ${m.warnings.join(" ")}` : "");
+  const used = (m.sources || []).filter((s) => s.status && s.status.used).map((s) => s.name);
+  $("mapNote").textContent = m.synthetic ? "가상 데이터 · 실제 지형·소유·단지와 무관" : used.length ? `실측 자료: ${used.join(" · ")}` : "불러온 지도";
+  showAlert(regionWarnings());
   if (!m.has_owner) document.querySelector('input[name="ownerMode"][value="proxy"]').checked = true;
+  renderSources(m);
+}
+function regionWarnings() {
+  const w = (state.region && state.region.meta.warnings) || [];
+  return w.length ? `확인 필요: ${w.join(" ")}` : "";
+}
+function renderSources(m) {
+  const box = clear($("sources"));
+  if (m.synthetic) return box.append(h("p", { class: "empty", text: "가상 읍면 생성기가 만든 합성 데이터입니다. 실측 지도를 고르면 출처를 보여 줍니다." }));
+  const list = m.sources || [];
+  if (!list.length) return box.append(h("p", { class: "empty", text: "불러온 파일에 출처 정보가 없습니다." }));
+  box.append(
+    h("ul", { class: "srclist" }, list.map((s) => {
+      const st = s.status || {};
+      const label = st.used ? "사용" : `미사용${st.reason ? ` · ${st.reason}` : ""}`;
+      return h(
+        "li", {},
+        h("span", { class: `st ${st.used ? "on" : "off"}`, text: label }),
+        s.url ? h("a", { href: s.url, target: "_blank", rel: "noopener", text: s.name }) : s.name,
+        h("div", { class: "what", text: `${(s.fields || []).join(", ")} — ${s.provider}${s.key_required && !st.used ? ` (${s.key_required} 필요)` : ""}` })
+      );
+    }))
+  );
+  if (m.built) box.append(h("p", { class: "hint", text: `지도 생성일 ${m.built}. 출처별 이용 조건은 docs/real-data.md에 정리했습니다.` }));
+}
+async function loadReal() {
+  const name = $("realSelect").value;
+  if (!name) return;
+  setBusy(true, "실측 지도를 불러오는 중…");
+  try {
+    setRegion(await api("/api/sites/region", { name }));
+    await runSolve();
+  } catch (err) {
+    showAlert(`실측 지도를 불러오지 못했습니다: ${err.message}`);
+  } finally {
+    setBusy(false);
+  }
+}
+async function listReal() {
+  const sel = clear($("realSelect"));
+  try {
+    const regions = await apiGet("/api/sites/regions");
+    for (const r of regions) sel.append(h("option", { value: r.name, text: `${r.title} (필지 ${nf0.format(r.n_parcels)}개)` }));
+    if (!regions.length) sel.append(h("option", { value: "", text: "실측 지도 없음" }));
+    $("btnReal").disabled = !regions.length;
+    return regions;
+  } catch (_) {
+    sel.append(h("option", { value: "", text: "목록을 읽지 못했습니다" }));
+    $("btnReal").disabled = true;
+    return [];
+  }
 }
 async function loadDemo() {
   setBusy(true, "가상 읍면을 만드는 중…");
@@ -432,12 +494,12 @@ function downloadCsv() {
   const r = state.result;
   if (!r) return;
   const feats = state.region.parcels.features;
-  const lines = ["complex,parcel_id,owner,area_ha,slope,drainage,road_access"];
+  const lines = ["complex,parcel_id,pnu,owner,area_ha,slope,drainage,road_access"];
   for (const c of r.complexes) {
     for (const p of c.parcels) {
       const f = feats[idx.get(p)];
       const q = f.properties;
-      lines.push([c.id, p, q.owner || "", areaHa(f).toFixed(3), q.slope ?? "", q.drainage ?? "", q.road_access ? 1 : 0].join(","));
+      lines.push([c.id, p, q.pnu || "", q.owner || "", areaHa(f).toFixed(3), q.slope ?? "", q.drainage ?? "", q.road_access ? 1 : 0].join(","));
     }
   }
   const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv" });
@@ -461,12 +523,18 @@ async function boot() {
   $("showRoads").addEventListener("change", renderRoads);
   $("chkBasemap").addEventListener("change", (e) => toggleBasemap(e.target.checked));
   $("btnDemo").addEventListener("click", loadDemo);
+  $("btnReal").addEventListener("click", loadReal);
   $("fileInput").addEventListener("change", (e) => e.target.files[0] && importFile(e.target.files[0]));
   $("btnValidate").addEventListener("click", runValidate);
   $("btnCsv").addEventListener("click", downloadCsv);
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderRoads(); renderAllResults(); });
   if (q.has("truth")) $("showTruth").checked = true;
-  await loadDemo();
+  // 기본은 첫 실측 지도. ?map=demo 면 가상 읍면, ?map=<이름> 이면 그 실측 지도
+  const regions = await listReal();
+  const want = q.get("map");
+  if (want && want !== "demo" && regions.some((r) => r.name === want)) $("realSelect").value = want;
+  if (want === "demo" || !regions.length) await loadDemo();
+  else await loadReal();
   if (q.has("select") && state.result && state.result.complexes.length) selectComplex(Number(q.get("select")) || 1, true);
   if (q.has("validate")) await runValidate();
 }
