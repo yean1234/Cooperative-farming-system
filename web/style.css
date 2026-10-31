@@ -133,6 +133,12 @@ input[type="number"] {
   border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; width: 100%; min-width: 0;
   font-variant-numeric: tabular-nums;
 }
+select {
+  font: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; width: 100%; min-width: 0;
+}
+.divider { border-top: 1px solid var(--border); margin: 12px 0; }
+select:focus-visible,
 input:focus-visible, button:focus-visible, summary:focus-visible, .file:focus-within {
   outline: 2px solid var(--focus); outline-offset: 2px;
 }
@@ -304,4 +310,12 @@ table.rank tbody tr:hover td { background: var(--surface-2); }
 table.rank tbody tr.sel td { background: var(--surface-2); box-shadow: inset 0 -1px 0 var(--series-2); font-weight: 600; }
 table.rank tbody tr:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .popup .why { margin: 0 0 8px; color: var(--text-primary); font-size: 13px; max-width: 290px; }
+.srclist { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.srclist li { padding: 6px 0; border-top: 1px solid var(--border); }
+.srclist li:first-child { border-top: 0; }
+.srclist .st { font-size: 12px; font-weight: 600; margin-right: 6px; }
+.srclist .st.on { color: var(--good-text); }
+.srclist .st.off { color: var(--text-muted); }
+.srclist .what { color: var(--text-secondary); font-size: 12px; margin-top: 2px; }
+.srclist a { color: inherit; }
 #detail h3 { margin-top: 12px; }

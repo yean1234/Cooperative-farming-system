@@ -26,7 +26,12 @@
     <aside class="panel controls" aria-label="데이터와 조건">
       <section class="card">
         <h2>1. 읍면 지도</h2>
-        <p class="hint">가상 읍면으로 바로 시험하거나, 팜맵 필지 GeoJSON을 불러옵니다.</p>
+        <p class="hint">공개 실측 자료로 만든 지도를 고르거나, 가상 읍면·GeoJSON으로 시험합니다.</p>
+        <label>실측 지도
+          <select id="realSelect" aria-label="실측 지도 선택"><option value="">불러오는 중…</option></select>
+        </label>
+        <button type="button" class="btn primary" id="btnReal">실측 지도 불러오기</button>
+        <div class="divider" aria-hidden="true"></div>
         <div class="grid2">
           <label>난수 시드<input type="number" id="seed" min="0" value="11"></label>
           <label>농가 수<input type="number" id="farmers" min="10" max="2000" value="150"></label>
@@ -103,11 +108,17 @@
         <div id="validation"><p class="empty">정답 단지 재현(F1·IoU), 베이스라인 비교, 민감도를 계산합니다.</p></div>
       </section>
 
+      <section class="card">
+        <h2>데이터 출처</h2>
+        <div id="sources"><p class="empty">지도를 불러오면 필지 속성별 출처를 보여 줍니다.</p></div>
+      </section>
+
       <section class="card notes">
         <h2>읽는 법과 한계</h2>
         <ul>
           <li>결과는 결정이 아니라 <b>협의를 시작할 지도</b>입니다. 농가 동의와 마을 관계는 알고리즘 밖의 일입니다.</li>
-          <li>소득 증분은 점 추정 대신 보수·기준·낙관 3구간으로 보여 줍니다. 단가는 초안 가정값이며 KAMIS 가격·표준 단수로 바꿀 예정입니다.</li>
+          <li>소득 증분은 점 추정 대신 보수·기준·낙관 3구간으로 보여 줍니다. 논은 2025년산 논벼 생산비조사·2025 농산물소득자료집·2026 전략작물직불금 단가로 계산했고, 밭은 아직 가정값입니다.</li>
+          <li>실측 지도에는 소유자 정보가 없어(농지대장 비공개) 참여 농가 수를 필지 수로 추정합니다.</li>
           <li>가상 읍면과 정답 단지는 합성 데이터입니다. 재현 지표는 검증 절차 시연용이며 성능 주장이 아닙니다.</li>
         </ul>
       </section>

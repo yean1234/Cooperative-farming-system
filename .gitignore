@@ -8,3 +8,5 @@ venv/
 out/
 .DS_Store
 Thumbs.db
+data/cache/
+data/raw/
