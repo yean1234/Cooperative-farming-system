@@ -15,6 +15,7 @@
 - **수익 배분**: 배분 기준별로 조합원 각자가 개별영농보다 나아지는지 비교한다.
 
 기획 내용(초록·문제·선행·방법론·데이터·산출물)은 [docs/service-plan.md](docs/service-plan.md)에 있다.
+B2B 타겟 지표(법인의 니즈를 수치로 보는 자료, 외부 관찰 가능한 타겟팅 기준)와 BM 전략 조사는 [docs/b2b-targeting-and-bm.md](docs/b2b-targeting-and-bm.md)에 있다. 근거 조사 노트는 [docs/research-notes/](docs/research-notes/)에 있다.
 
 ![다자간 교환안의 작목 단지 배치 화면](docs/images/overview-crop.png)
 
