@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>빈 필드 대응 MVP — UI/UX 흐름</title>
+<style>
+  :root {
+    --bg: #f7f7f4; --card: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d9dcd6;
+    --coop: #3f8f5a; --coop-soft: #d7ecdc; --hole: #c4492d; --hole-soft: #f6dcd4;
+    --cand: #2f6db3; --cand-soft: #dbe7f5; --warn: #b7791f; --warn-soft: #f8ecd4;
+    --other: #e6e4dc;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 40px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 15px; margin: 0 0 8px; }
+  .lead { color: var(--muted); margin: 0 0 8px; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--other); color: var(--muted); }
+  .tag.ok { background: var(--coop-soft); color: #23633a; }
+  .tag.new { background: var(--cand-soft); color: #1f4f86; }
+  .tag.mid { background: var(--warn-soft); color: #7c5210; }
+
+  /* ---------- 흐름도 ---------- */
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; align-items: stretch; }
+  .step { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 12px 10px; margin-right: 26px; }
+  .step:last-child { margin-right: 0; }
+  .step:not(:last-child)::after { content: ""; position: absolute; right: -22px; top: 50%; width: 16px; height: 2px; background: var(--muted); }
+  .step:not(:last-child)::before { content: ""; position: absolute; right: -24px; top: calc(50% - 5px); border: 6px solid transparent; border-left-color: var(--muted); }
+  .step .no { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .step .t { font-weight: 700; margin: 2px 0 4px; }
+  .step .d { font-size: 13px; color: var(--muted); }
+  .step.input { border-top: 4px solid var(--ink); }
+  .step.click { border-top: 4px solid var(--hole); }
+  .step.judge { border-top: 4px solid var(--warn); }
+  .step.out { border-top: 4px solid var(--coop); }
+
+  .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .lane { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .lane h3 .pill { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; margin-right: 6px; }
+  .lane.a h3 .pill { background: var(--coop-soft); color: #23633a; }
+  .lane.b h3 .pill { background: var(--hole-soft); color: #8a2e19; }
+  .lane ol { margin: 0; padding-left: 20px; }
+  .lane li { margin: 2px 0; }
+  .merge { margin-top: 16px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--coop); border-radius: 10px; padding: 12px 14px; }
+
+  /* ---------- 와이어프레임 ---------- */
+  .frame { background: #fff; border: 1px solid #bfc3bb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .frame .bar { display: flex; gap: 12px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #fbfbf9; font-size: 13px; }
+  .frame .bar b { font-size: 14px; }
+  .frame .bar .sp { flex: 1; }
+  .frame .body { display: grid; grid-template-columns: 250px 1fr 360px; min-height: 560px; }
+  .pane { padding: 12px 14px; border-right: 1px solid var(--line); }
+  .pane:last-child { border-right: 0; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .field .inp { border: 1px solid #c9ccc4; border-radius: 6px; padding: 5px 8px; font-weight: 600; background: #fff; }
+  .field .inp.focus { border-color: var(--ink); box-shadow: 0 0 0 2px rgba(31,35,40,.12); }
+  .seg { display: flex; border: 1px solid #c9ccc4; border-radius: 6px; overflow: hidden; font-size: 12px; }
+  .seg span { flex: 1; text-align: center; padding: 4px 0; }
+  .seg span.on { background: var(--ink); color: #fff; }
+  .gauge { margin: 6px 0 2px; height: 8px; background: var(--other); border-radius: 4px; position: relative; }
+  .gauge i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .gauge em { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); }
+  .small { font-size: 12px; color: var(--muted); }
+  .status { border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
+  .status.bad { background: var(--hole-soft); color: #7a2914; }
+  .status.ok { background: var(--coop-soft); color: #1f5733; }
+
+  .mapwrap { position: relative; padding: 10px; }
+  .mapwrap svg { width: 100%; height: auto; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 4px; vertical-align: -2px; background: var(--c); border: 1px solid var(--b, transparent); }
+  .toast { position: absolute; left: 22px; top: 20px; background: var(--ink); color: #fff; font-size: 12px; padding: 6px 10px; border-radius: 6px; }
+  .toast::after { content: ""; position: absolute; left: 16px; bottom: -10px; border: 5px solid transparent; border-top-color: var(--ink); }
+
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: -12px -14px 12px; padding: 0 8px; background: #fbfbf9; }
+  .tabs span { font-size: 13px; padding: 8px 10px; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tabs span.on { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { padding: 5px 4px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+  th:first-child, td:first-child { text-align: left; }
+  tr.sel td { background: #eef4fb; }
+  tr.base td { color: var(--muted); }
+  .rk { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; background: var(--cand); color: #fff; font-size: 11px; font-weight: 700; margin-right: 4px; }
+  .neg { color: var(--hole); } .pos { color: var(--coop); }
+
+  .bars { margin-top: 6px; }
+  .bars .row { display: grid; grid-template-columns: 70px 1fr 64px; gap: 6px; align-items: center; font-size: 12px; margin: 3px 0; }
+  .bars .track { height: 12px; background: var(--other); border-radius: 3px; position: relative; overflow: hidden; }
+  .bars .track i { position: absolute; left: 0; top: 0; bottom: 0; }
+  .slider { margin: 8px 0 4px; }
+  .slider .rail { height: 4px; background: var(--other); border-radius: 2px; position: relative; }
+  .slider .rail i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: var(--warn); border-radius: 2px; }
+  .slider .rail b { position: absolute; left: 50%; top: -6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #fff; border: 2px solid var(--warn); }
+  .slider .ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* 세 탭을 나란히 */
+  .tabgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+  .tabcard { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .tabcard h3 { display: flex; align-items: center; gap: 6px; }
+  .tabcard h3 .n { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background: var(--ink); color: #fff; font-size: 12px; }
+  .tabcard p { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+
+  .feas th, .feas td { white-space: normal; text-align: left; font-size: 13px; padding: 7px 6px; vertical-align: top; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  code { font-size: 12px; background: #eeeee8; padding: 0 4px; border-radius: 3px; }
+
+  @media (max-width: 1000px) {
+    .flow { grid-template-columns: 1fr; gap: 22px; }
+    .step { margin-right: 0; }
+    .step:not(:last-child)::after { right: auto; left: 50%; top: auto; bottom: -16px; width: 2px; height: 12px; }
+    .step:not(:last-child)::before { right: auto; left: calc(50% - 5px); top: auto; bottom: -24px; border-left-color: transparent; border-top-color: var(--muted); }
+    .branch, .tabgrid { grid-template-columns: 1fr; }
+    .frame .body { grid-template-columns: 1fr; }
+    .pane { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>빈 필드 대응 MVP — UI/UX 흐름</h1>
+  <p class="lead">공동영농 법인이 <b>목표 순수익(평당 배당)</b>을 정해 두고 농가를 설득하다가, 누군가 거절해 필드에 구멍이 났을 때 쓰는 화면이다.</p>
+  <p class="small">화면 속 숫자는 가상 들녘(시드 7)의 계산값을 바탕으로 만든 <b>예시</b>다. 실제 들녘 수치가 아니다.</p>
+
+  <!-- ===================================================== 1. 전체 흐름 -->
+  <h2>1. 전체 흐름</h2>
+  <div class="flow">
+    <div class="step input"><div class="no">STEP 1</div><div class="t">목표 입력</div>
+      <div class="d">목표 평당 배당(또는 순수익), 정부 면적 기준(20ha / 50ha), 최소 농가 수</div></div>
+    <div class="step input"><div class="no">STEP 2</div><div class="t">단지 불러오기</div>
+      <div class="d">후보단지 시뮬레이터에서 고른 단지와 현재 순수익·배당을 보여 줌</div></div>
+    <div class="step click"><div class="no">STEP 3</div><div class="t">거절 필지 클릭</div>
+      <div class="d">지도에서 필지(또는 농가 전체)를 눌러 해제. 1초 안에 다시 계산</div></div>
+    <div class="step judge"><div class="no">STEP 4</div><div class="t">자동 판정</div>
+      <div class="d">① 면적·농가 수·연결성 기준 충족 여부<br>② 목표 평당 배당 달성 여부</div></div>
+    <div class="step out"><div class="no">STEP 5</div><div class="t">결과 탭 3개</div>
+      <div class="d">대체 후보 · 기계비 · 배당과 흉년</div></div>
+  </div>
+
+  <div class="branch">
+    <div class="lane a">
+      <h3><span class="pill">경우 A</span>구멍이 나도 기준과 목표를 모두 충족</h3>
+      <ol>
+        <li>"빼고 가도 됩니다" 표시</li>
+        <li>바로 <b>③ 배당과 흉년</b> 탭으로 이동해 남은 조합원 배당 변화를 보여 줌</li>
+        <li>참고로 대체 후보도 보여 줌 (넣으면 얼마나 더 좋아지는지)</li>
+      </ol>
+    </div>
+    <div class="lane b">
+      <h3><span class="pill">경우 B</span>기준 미달 또는 목표 미달</h3>
+      <ol>
+        <li>무엇이 부족한지 표시 (예: 면적 1.4ha 부족)</li>
+        <li><b>① 대체 후보</b> 탭 자동 열림. 기준을 넘기는 후보만 순위대로 표시</li>
+        <li>후보를 누르면 지도에 편입 땅·새 트랙터 경로가 겹쳐 보임</li>
+        <li><b>② 기계비</b> 탭에서 후보별 기계비 차이 확인</li>
+      </ol>
+    </div>
+  </div>
+  <div class="merge"><b>마지막 단계 (공통)</b> — 고른 안으로 <b>③ 배당과 흉년</b>을 확인하고 "설득용 카드"를 내보낸다. 카드에는 해당 농가에게 평당 최대 얼마까지 제시할 수 있는지가 들어간다. 다른 필지를 또 해제하면 STEP 3으로 돌아가 결과가 계속 쌓인다.</div>
+
+  <!-- ===================================================== 2. 화면 와이어프레임 -->
+  <h2>2. 한 화면 와이어프레임 (경우 B, 후보 1번을 고른 상태)</h2>
+  <div class="frame">
+    <div class="bar"><b>빈 필드 시뮬레이터</b><span class="small">흥해 들녘 · 단지 3</span><span class="sp"></span><span class="tag">해제 1건</span><span class="tag">되돌리기</span><span class="tag">설득 카드 내보내기</span></div>
+    <div class="body">
+      <!-- 왼쪽: 입력과 판정 -->
+      <div class="pane">
+        <div class="field"><label>목표 평당 배당 (원/평·년)</label><div class="inp focus">2,000</div></div>
+        <div class="field"><label>정부 면적 기준</label><div class="seg"><span class="on">20ha (현행)</span><span>50ha (개선안)</span></div></div>
+        <div class="field"><label>최소 참여 농가</label><div class="inp">5명</div></div>
+        <div class="field"><label>배분 기준</label><div class="seg"><span class="on">면적</span><span>생산력</span><span>기여도</span></div></div>
+        <div class="field"><label>지급 방식</label><div class="seg"><span>고정 임차료</span><span class="on">배당</span><span>혼합</span></div></div>
+        <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+        <div class="status bad"><b>기준 미달</b> — 면적 19.6ha / 20ha 이상 필요</div>
+        <div class="small">단지 면적</div>
+        <div class="gauge"><i style="width:78%;background:var(--hole)"></i><em style="left:80%"></em></div>
+        <div class="small" style="display:flex;justify-content:space-between"><span>19.6ha</span><span>기준 20ha</span></div>
+        <div style="height:10px"></div>
+        <div class="small">평당 배당</div>
+        <div class="gauge"><i style="width:81%;background:var(--warn)"></i><em style="left:80%"></em></div>
+        <div class="small" style="display:flex;justify-content:space-between"><span>2,027원</span><span>목표 2,000원</span></div>
+        <div class="status ok" style="margin-top:12px">후보 1번을 넣으면 <b>21.3ha · 평당 2,061원</b>으로 둘 다 충족</div>
+      </div>
+
+      <!-- 가운데: 지도 -->
+      <div class="pane mapwrap">
+        <svg id="map" viewBox="0 0 520 445" role="img" aria-label="필지 지도 예시"></svg>
+        <div class="toast">클릭해서 해제 / 다시 클릭해서 복구</div>
+        <div class="legend">
+          <span style="--c:var(--coop-soft);--b:var(--coop)">법인 단지</span>
+          <span style="--c:var(--hole-soft);--b:var(--hole)">해제된 필지 (거절)</span>
+          <span style="--c:var(--cand-soft);--b:var(--cand)">대체 후보 (번호 = 순위)</span>
+          <span style="--c:var(--other)">비참여</span>
+          <span style="--c:#fff;--b:var(--ink)">트랙터 경로</span>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 결과 탭 -->
+      <div class="pane">
+        <div class="tabs"><span class="on">① 대체 후보</span><span>② 기계비</span><span>③ 배당·흉년</span></div>
+        <div class="small" style="margin-bottom:6px">기준을 넘기는 후보만 표시 · 정렬: 평당 배당 높은 순</div>
+        <table>
+          <thead><tr><th>대안</th><th>면적</th><th>설득</th><th>기계비/ha</th><th>평당 배당</th></tr></thead>
+          <tbody>
+            <tr class="base"><td>그대로 진행</td><td>19.6</td><td>0명</td><td>105만</td><td>기준 미달</td></tr>
+            <tr class="sel"><td><span class="rk">1</span>경작권 교환</td><td>21.3</td><td>1명</td><td>101만</td><td class="pos">2,061</td></tr>
+            <tr><td><span class="rk">2</span>필지 B 편입</td><td>20.4</td><td>1명</td><td>104만</td><td class="pos">2,038</td></tr>
+            <tr><td><span class="rk">3</span>필지 C+D 편입</td><td>21.0</td><td>2명</td><td>108만</td><td class="pos">2,009</td></tr>
+          </tbody>
+        </table>
+        <p class="small" style="margin:10px 0 0">1번: 거절 농가에게 단지 가장자리 필지를 대신 맡기고 구멍 자리는 법인이 짓는다. 거절 농가도 손해가 없다.</p>
+        <div class="status ok" style="margin-top:10px;font-size:12.5px">이 거절 농가에게 제시할 수 있는 상한: 평당 <b>+85원</b>까지 더 줘도 목표 유지</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================== 3. 결과 탭 세 개 -->
+  <h2>3. 결과 탭 세 개 (MVP 1·2·3과 대응)</h2>
+  <div class="tabgrid">
+    <div class="tabcard">
+      <h3><span class="n">1</span>대체 후보 <span class="tag">MVP 1</span></h3>
+      <table>
+        <thead><tr><th>후보</th><th>기준</th><th>목표 차이</th></tr></thead>
+        <tbody>
+          <tr class="sel"><td><span class="rk">1</span>경작권 교환</td><td>충족</td><td class="pos">+61원</td></tr>
+          <tr><td><span class="rk">2</span>필지 B</td><td>충족</td><td class="pos">+38원</td></tr>
+          <tr><td><span class="rk">3</span>필지 C+D</td><td>충족</td><td class="pos">+9원</td></tr>
+          <tr class="base"><td>필지 E</td><td>미달</td><td>숨김</td></tr>
+        </tbody>
+      </table>
+      <p>후보 = 단지 경계에서 300m 안의 비참여 필지를 농가 단위로 묶은 것과, 경작권 교환안. 1~3개 조합까지 탐색한다. 이미 거절한 농가는 뺀다.</p>
+    </div>
+
+    <div class="tabcard">
+      <h3><span class="n">2</span>기계비 <span class="tag">MVP 2</span></h3>
+      <div class="small">ha당 연간 기계비 (만원)</div>
+      <div class="bars">
+        <div class="row"><span>구멍 전</span><span class="track"><i style="width:68%;background:#9aa39a"></i></span><span>100만</span></div>
+        <div class="row"><span>그대로</span><span class="track"><i style="width:71%;background:var(--hole)"></i></span><span>105만</span></div>
+        <div class="row"><span>후보 1</span><span class="track"><i style="width:69%;background:var(--cand)"></i></span><span>101만</span></div>
+        <div class="row"><span>후보 3</span><span class="track"><i style="width:73%;background:var(--cand)"></i></span><span>108만</span></div>
+      </div>
+      <div class="small" style="margin-top:10px">구성: 필지 작업 · 블록 진입·세팅 · 블록 사이 이동</div>
+      <p>지도에 후보별 트랙터 경로를 겹쳐 그린다. "빠져도 기준 충족"인 경우(경우 A)에는 대체 없이 빼는 안이 1번이 될 수 있다.</p>
+    </div>
+
+    <div class="tabcard">
+      <h3><span class="n">3</span>배당과 흉년 <span class="tag">MVP 3</span></h3>
+      <div class="small">작황 (평년 대비 수확량)</div>
+      <div class="slider"><div class="rail"><i></i><b></b></div>
+        <div class="ticks"><span>평년</span><span>−10%</span><span>−20%</span><span>−30%</span><span>−50%</span></div></div>
+      <table style="margin-top:8px">
+        <thead><tr><th>평당 받는 돈</th><th>평년</th><th>−20%</th></tr></thead>
+        <tbody>
+          <tr><td>배당형</td><td>2,061</td><td class="neg">1,4xx</td></tr>
+          <tr><td>고정 임차료형</td><td>2,000</td><td>2,000</td></tr>
+          <tr><td>법인 유보 (임차료형)</td><td>+61</td><td class="neg">−5xx</td></tr>
+        </tbody>
+      </table>
+      <p>조합원별 막대(개별영농 대비)와 함께 보여 준다. 흉년 손실을 조합원이 지는지(배당형) 법인이 지는지(임차료형)가 한눈에 보인다. 흉년 열의 숫자는 조수입 자료를 넣은 뒤 계산한다.</p>
+    </div>
+  </div>
+
+  <!-- ===================================================== 4. 기술 가능성 -->
+  <h2>4. 기술적으로 가능한가 — 기존 코드와 새로 만들 것</h2>
+  <table class="feas">
+    <thead><tr><th style="width:18%">기능</th><th style="width:30%">이미 있는 것</th><th style="width:36%">새로 만들 것</th><th>난이도</th></tr></thead>
+    <tbody>
+      <tr><td>클릭 해제 → 재계산</td><td>지도 클릭(<code>web/operations.js</code>), 비용·순이익 계산(<code>server/metrics.py</code> <code>evaluate</code>)</td><td>해제 상태를 서버로 보내는 API 1개, 결과 즉시 갱신</td><td><span class="tag ok">쉬움</span></td></tr>
+      <tr><td>기준 판정</td><td>면적·농가 수·연결성 제약(<code>server/selection.py</code>)</td><td>기준값(20/50ha) 화면 전환</td><td><span class="tag ok">쉬움</span></td></tr>
+      <tr><td>MVP 1 대체 후보 순위</td><td>인접 그래프, 경작권 교환(<code>server/exchange.py</code>)</td><td>주변 후보 생성 + 1~3개 조합 탐색 + "목표 충족, 설득 인원 최소, 배당 최대" 순 정렬</td><td><span class="tag mid">보통</span></td></tr>
+      <tr><td>MVP 2 기계비 비교</td><td>작업시간·세팅·이동 비용, 순회 경로(<code>server/routing.py</code>)</td><td>후보별 기계비 분해 표, 경로 겹쳐 그리기</td><td><span class="tag ok">쉬움</span></td></tr>
+      <tr><td>MVP 3 배당</td><td>배분 기준 4종(<code>server/sharing.py</code>)</td><td>평당 배당 기준 표시, 고정 임차료형·혼합형 지급 방식 추가</td><td><span class="tag ok">쉬움</span></td></tr>
+      <tr><td>MVP 3 흉년</td><td>없음. 지금은 작물 소득을 "소득" 한 값으로만 가짐</td><td>조수입·경영비 분리 파라미터, 작황 계수, 고정비(감가상각·인건비), 재해보험 보전(선택)</td><td><span class="tag new">새 모델</span></td></tr>
+      <tr><td>실제 들녘 소유자</td><td>가상 들녘은 소유자 있음. 실측 지도는 필지 수로 추정</td><td>법인이 참여·거절 농가를 직접 입력하는 방식</td><td><span class="tag mid">데이터</span></td></tr>
+    </tbody>
+  </table>
+  <p class="note">계산 시간: 30ha 단지에서 비용 평가는 수십 ms, 작목 배치는 1초 안쪽이다. 후보 조합 수백 개를 평가해도 몇 초 안에 끝난다(작목 배치는 최종 상위 후보에만 다시 푼다).</p>
+</main>
+
+<script>
+// 와이어프레임 지도: 경지정리 논 격자를 흉내 낸 예시 그림
+(function () {
+  const svg = document.getElementById("map");
+  const NS = "http://www.w3.org/2000/svg";
+  const cols = 8, rows = 12, w = 56, h = 28, gx = 8, gy = 3, x0 = 22, y0 = 20;
+  // 상태: c=법인, h=해제, o=비참여, 1..3=후보 순위
+  const grid = [
+    "oooooooo",
+    "oocccooo",
+    "occcccoo",
+    "occcccco",
+    "occchcco",
+    "occcccco",
+    "ooccccc1",
+    "o2ccccc1",
+    "o2cccccc",
+    "oocccc3o",
+    "ooocco3o",
+    "oooooooo",
+  ];
+  const fill = { c: "var(--coop-soft)", h: "var(--hole-soft)", o: "var(--other)", 1: "var(--cand-soft)", 2: "var(--cand-soft)", 3: "var(--cand-soft)" };
+  const stroke = { c: "var(--coop)", h: "var(--hole)", o: "#cfccc2", 1: "var(--cand)", 2: "var(--cand)", 3: "var(--cand)" };
+  const el = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const defs = el("defs", {});
+  const pat = el("pattern", { id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" });
+  pat.append(el("rect", { width: 6, height: 6, fill: "#f6dcd4" }), el("line", { x1: 0, y1: 0, x2: 0, y2: 6, stroke: "#c4492d", "stroke-width": 2 }));
+  defs.append(pat); svg.append(defs);
+  // 농로
+  for (let c = 0; c <= cols; c += 2) svg.append(el("rect", { x: x0 + c * (w + gx) - gx + 1, y: y0 - 6, width: 4, height: rows * (h + gy) + 8, fill: "#e8e2cf" }));
+  const centers = {};
+  grid.forEach((row, r) => [...row].forEach((s, c) => {
+    const x = x0 + c * (w + gx), y = y0 + r * (h + gy);
+    const isCand = "123".includes(s);
+    svg.append(el("rect", { x, y, width: w, height: h, rx: 2, fill: s === "h" ? "url(#hatch)" : fill[s], stroke: stroke[s], "stroke-width": s === "h" || isCand ? 2 : 1, "stroke-dasharray": isCand ? "4 2" : "" }));
+    if (isCand && !centers[s]) {
+      centers[s] = 1;
+      const g = el("g", {});
+      g.append(el("circle", { cx: x + w / 2, cy: y + h / 2, r: 9, fill: "var(--cand)" }));
+      const t = el("text", { x: x + w / 2, y: y + h / 2 + 4, "text-anchor": "middle", "font-size": 11, "font-weight": 700, fill: "#fff" }); t.textContent = s;
+      g.append(t); svg.append(g);
+    }
+    if (s === "h") {
+      const t = el("text", { x: x + w / 2, y: y + h / 2 + 4, "text-anchor": "middle", "font-size": 10, "font-weight": 700, fill: "#8a2e19" }); t.textContent = "거절";
+      svg.append(t);
+    }
+  }));
+  // 트랙터 경로(후보 1 선택 시)
+  const P = (c, r) => [x0 + c * (w + gx) + w / 2, y0 + r * (h + gy) + h / 2];
+  const pts = [[-0.3, 12.6], [2, 10], [2.5, 6], [3, 2], [5, 4], [6.6, 6.5], [7, 7.5], [5.5, 9.5], [-0.3, 12.6]].map(([c, r]) => P(c, r).join(",")).join(" ");
+  svg.append(el("polyline", { points: pts, fill: "none", stroke: "var(--ink)", "stroke-width": 2, "stroke-dasharray": "6 4", "stroke-linejoin": "round" }));
+  const [dx, dy] = P(-0.3, 12.6);
+  svg.append(el("rect", { x: dx - 8, y: dy - 8, width: 16, height: 16, fill: "var(--ink)" }));
+  const lab = el("text", { x: dx + 12, y: dy + 4, "font-size": 11, fill: "var(--ink)" }); lab.textContent = "농기계 보관소";
+  svg.append(lab);
+})();
+</script>
+</body>
+</html>
