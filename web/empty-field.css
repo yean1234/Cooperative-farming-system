@@ -86,6 +86,16 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
 .map-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .map-head h2 { margin: 0; }
 .tip { background: var(--ink); color: #fff; font-size: 12px; padding: 3px 9px; border-radius: 6px; }
+.unit { display: flex; align-items: center; gap: 8px; }
+.unit .seg button { padding: 4px 10px; white-space: nowrap; }
+.hover-info { min-height: 1.4em; margin: 6px 0 0; font-size: 13px; color: var(--cand); font-weight: 600; }
+.recalc { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); }
+/* 다시 계산된 영역을 잠깐 노랗게 강조 */
+@keyframes flashbg { 0% { background-color: #fff3c4; } 100% { background-color: transparent; } }
+@keyframes flashtxt { 0% { color: #7c5210; } 100% { color: var(--muted); } }
+.flash { animation: flashbg 1.2s ease-out; border-radius: 8px; }
+.recalc.flash { animation: flashtxt 2.5s ease-out; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .flash, .recalc.flash { animation: none; } }
 .map-wrap { margin-top: 10px; background: #fbfbf8; border-radius: 8px; padding: 6px; }
 #map { width: 100%; height: auto; display: block; touch-action: manipulation; }
 .parcel { stroke-width: 1; cursor: default; }
