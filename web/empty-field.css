@@ -98,9 +98,9 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
 @media (prefers-reduced-motion: reduce) { .flash, .recalc.flash { animation: none; } }
 .map-wrap { margin-top: 10px; background: #fbfbf8; border-radius: 8px; padding: 6px; }
 #map { width: 100%; height: auto; display: block; touch-action: manipulation; }
-.parcel { stroke-width: 1; cursor: default; }
+.parcel { cursor: default; }
 .parcel.member { cursor: pointer; }
-.parcel.member:hover, .parcel.hl { filter: brightness(.93); stroke-width: 2.5; }
+.parcel.member:hover, .parcel.hl { filter: brightness(.9); stroke-width: 3; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; padding: 0; margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
 .sw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; vertical-align: -2px; border: 1.5px solid; }
 .sw.coop { background: var(--coop-soft); border-color: var(--coop); }
@@ -108,7 +108,8 @@ input[type=range] { width: 100%; accent-color: var(--warn); }
 .sw.add { background: var(--cand-soft); border-color: var(--cand); }
 .sw.cand { background: #fff; border: 1.5px dashed var(--cand); }
 .sw.ex { background: var(--ex-soft); border-color: var(--ex); }
-.sw.out { background: var(--other); border-color: #cfccc2; }
+.sw.out { background: var(--other); border-color: #c9c6bb; }
+.sw.bg { background: #f3f2ee; border-color: #dedbd2; }
 .sw.route { width: 18px; height: 0; border: 0; border-top: 2px dashed var(--ink); border-radius: 0; vertical-align: 3px; }
 .map-note { margin: 8px 0 0; font-size: 13.5px; }
 
@@ -126,6 +127,8 @@ th, td { padding: 7px 5px; border-bottom: 1px solid var(--line); text-align: rig
 th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 th:first-child, td:first-child, #optTable th:nth-child(2), #optTable td:nth-child(2) { text-align: left; }
 tr.opt { cursor: pointer; }
+.num { white-space: nowrap; }
+#optTable td:last-child { white-space: nowrap; }
 tr.opt:hover td { background: #f6f8fb; }
 tr.sel td { background: #eaf1fb; }
 tr.dis td { color: var(--muted); }

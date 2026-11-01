@@ -84,7 +84,7 @@
     <!-- 가운데: 지도 -->
     <section class="col map" aria-label="들녘 지도">
       <div class="map-head">
-        <h2>들녘 지도 <span class="muted">가상 들녘 · 필지 1개 0.3ha</span></h2>
+        <h2>들녘 지도 <span class="muted" id="mapMeta">포항 흥해 실측 필지</span></h2>
         <div class="unit">
           <span class="muted">해제 단위</span>
           <div class="seg" id="segUnit" role="radiogroup" aria-label="지도를 누를 때 해제되는 단위">
@@ -103,7 +103,8 @@
         <li><i class="sw add"></i>편입하는 땅</li>
         <li><i class="sw cand"></i>편입 후보</li>
         <li><i class="sw ex"></i>경작권 교환</li>
-        <li><i class="sw out"></i>비참여</li>
+        <li><i class="sw out"></i>비참여 논</li>
+        <li><i class="sw bg"></i>밭·시설·다른 단지</li>
         <li><i class="sw route"></i>트랙터 경로</li>
       </ul>
       <p class="map-note" id="mapNote" aria-live="polite"></p>
@@ -172,13 +173,16 @@
         <li>국가데이터처, 「2025년산 논벼(쌀) 생산비조사 결과」(2026.3.27): 10a당 총수입 2020~2025년산 1,152,894~1,348,651원, 5ha 이상 농가 직접생산비 508천원, 토지용역비 280,283원</li>
         <li>농림축산식품부 「공동영농 확산 지원사업」: 농업인 5명 이상·경작 면적 20ha 이상 농업법인, 개소당 2년 최대 20억 원 (2026년 시범, 2027년 누적 36개소로 확대 계획)</li>
         <li>참고 사례: 의성 화성영농조합법인 배당 3.3㎡당 2,000원 (경상북도 발표 인용 보도)</li>
+        <li>지도: 팜맵 필지 경계·논밭 구분, 흙토람 토양·배수, OpenStreetMap 도로로 만든 포항 흥해 들녘 실측 지도(2,666필지). 후보단지 시뮬레이터가 고른 단지 6과 주변 260m 안의 필지를 씁니다.</li>
+        <li>추정 소유자의 농가 규모 1.8ha: 위천친환경영농조합법인(2026 공동영농 확산 지원사업 선정) 30ha·17농가 보도</li>
         <li>법인 운영비 ha당 30만 원, 기계 비용·작업 횟수는 가정값</li>
       </ul>
     </details>
     <details class="toggle">
       <summary>이 화면의 한계와 가정</summary>
       <ul class="list">
-        <li>지도는 실제 들녘이 아닌 가상 들녘입니다. 필지는 모두 0.3ha 논으로 봅니다.</li>
+        <li>필지 모양과 면적은 실측이지만 <b>소유자는 추정값</b>입니다. 농지대장이 비공개라, 이웃한 필지를 농가당 약 1.8ha가 되도록 묶었습니다. 법인이 실제 참여·거절 명단을 넣으면 바뀝니다.</li>
+        <li>참여 필지는 단지 안의 논만 씁니다. 밭·시설·과수와 다른 후보단지에 든 필지는 편입 후보에서 뺍니다.</li>
         <li>작물은 논벼 기준으로 계산합니다. 2026년 지원사업은 쌀을 제외한 품목이 대상이므로, 실제 적용 때는 콩·가루쌀 등 작목 자료로 바꿔야 합니다.</li>
         <li>경작권 교환으로 나간 땅의 임차료 정산은 계산하지 않습니다.</li>
         <li>흉년은 총수입만 줄이고 생산비는 그대로 둡니다. 재해보험 보전과 직불금은 넣지 않았습니다.</li>
@@ -186,6 +190,7 @@
     </details>
   </footer>
 
+  <script src="data/empty-field-heunghae.js"></script>
   <script src="empty-field.js"></script>
 </body>
 </html>

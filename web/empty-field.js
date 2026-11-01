@@ -1,6 +1,8 @@
 /* 빈 필드 시뮬레이터
- * 서버 없이 브라우저에서 계산한다. 가상 들녘(필지 0.3ha 격자) 위에서
+ * 서버 없이 브라우저에서 계산한다. 포항 흥해 들녘 실측 필지(팜맵) 위에서
  * 거절 농가를 해제하면 지원 기준 판정, 대체 필지 후보, 기계비, 배당금을 다시 계산한다.
+ * 데이터: data/empty-field-heunghae.js (python -m server.realdata.empty_field 로 생성)
+ * 소유자는 추정값이다(농지대장 비공개). 이웃한 필지를 농가당 약 1.8ha로 묶었다.
  *
  * 경제 근거 (국가데이터처 2025년산 논벼 생산비조사, 10a당 → ha당 만원):
  *   총수입 2020~2025년산 최저 1,152.9 · 평균 1,236.1 · 최고 1,348.7
@@ -10,71 +12,35 @@
 "use strict";
 
 const P = {
-  COLS: 12, ROWS: 16,
-  PW: 100, PH: 30,            // 필지 폭·높이(m)
-  HA: 0.3,                    // 필지 1개 면적(ha)
   PY_PER_HA: 3025,
   REV: { lo: 1152.9, mid: 1236.1, hi: 1348.7 },   // 만원/ha
   COST: 538,                  // 만원/ha
   OPS: 8, SETUP_H: 0.25, TURN_H: 2 / 60, MACH_WON_H: 60000, SPEED_KMH: 12,
   RENT_PY: 927, BONUS: 0.5,
-  SEED: 7,
+  BAND_M: 110,                // 작업 경로를 짤 때 나누는 띠 폭(m)
 };
 
-// ---------------------------------------------------------------- 들녘 만들기
-function rng(seed) {
-  let a = seed >>> 0;
-  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-}
-function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
-
-const MEMBER_NAMES = "가나다라마바사아자차카타파".split("").map((c) => `농가 ${c}`);
-
-function buildField(seed) {
-  const r = rng(seed);
-  const { COLS, ROWS } = P;
-  const inRegion = (y, x) => y >= 3 && y <= 12 && x >= 2 && x <= 9 && !((y === 3 || y === 12) && (x === 2 || x === 9));
-  const parcels = [];
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) parcels.push({ id: y * COLS + x, x, y, owner: null, member: inRegion(y, x) });
-  const at = (y, x) => parcels[y * COLS + x];
-
-  // 참여 농가: 단지 안 세로 2필지 묶음을 섞어 13농가에 돌아가며 나눈다 (소유지가 흩어지도록)
-  const chunks = [];
-  for (let y = 3; y <= 11; y += 2) for (let x = 2; x <= 9; x++) {
-    const c = [at(y, x), at(y + 1, x)].filter((p) => p.member);
-    if (c.length) chunks.push(c);
-  }
-  shuffle(chunks, r).forEach((c, i) => c.forEach((p) => { p.owner = MEMBER_NAMES[i % MEMBER_NAMES.length]; }));
-
-  // 비참여 농가: 단지 밖 필지를 구역별로 1~2농가에 묶는다 (가까운 땅끼리)
-  const buckets = new Map();
-  parcels.filter((p) => !p.member).forEach((p) => {
-    const k = Math.floor(p.y / 4) * 4 + Math.floor(p.x / 3);
-    if (!buckets.has(k)) buckets.set(k, []);
-    buckets.get(k).push(p);
-  });
-  let n = 0;
-  [...buckets.values()].forEach((list) => {
-    const split = list.length > 5 && r() < 0.6;
-    const a = `비참여 ${++n}`, b = split ? `비참여 ${++n}` : a;
-    list.sort((p, q) => p.x - q.x || p.y - q.y).forEach((p, i) => { p.owner = i < list.length / 2 ? a : b; });
-  });
-
+// ---------------------------------------------------------------- 실측 단지 불러오기
+// kind: member(단지 안 참여 필지) · cand(주변 논, 편입 후보) · bg(밭·시설·다른 단지 등 배경)
+function loadField(D) {
+  const parcels = D.parcels.map((q) => ({
+    id: q.id, pnu: q.pnu, use: q.use, area: q.area, soil: q.soil, drain: q.drain,
+    kind: q.kind, member: q.kind === "member", bg: q.kind === "bg", owner: q.owner,
+    c: q.c, poly: q.poly, nb: q.nb,
+  }));
   const farms = new Map();
-  parcels.forEach((p) => { if (!farms.has(p.owner)) farms.set(p.owner, { name: p.owner, member: p.member, parcels: [] }); farms.get(p.owner).parcels.push(p.id); });
-  return { parcels, farms, depot: [-60, ROWS * P.PH + 60] };
+  parcels.forEach((p) => {
+    if (!p.owner) return;
+    if (!farms.has(p.owner)) farms.set(p.owner, { name: p.owner, member: p.member, parcels: [], area: 0 });
+    const f = farms.get(p.owner); f.parcels.push(p.id); f.area += p.area;
+  });
+  return { parcels, farms, depot: D.depot, roads: D.roads, meta: D.meta };
 }
 
 // ---------------------------------------------------------------- 기하
-const px = (p) => p.x * P.PW + Math.floor(p.x / 2) * 8;          // 2열마다 농로 8m
-const py = (p) => p.y * P.PH + Math.floor(p.y / 4) * 6;          // 4행마다 농로 6m
-const cx = (p) => px(p) + P.PW / 2, cy = (p) => py(p) + P.PH / 2;
-function neighbors(p) {
-  const out = [];
-  if (p.x > 0) out.push(p.id - 1); if (p.x < P.COLS - 1) out.push(p.id + 1);
-  if (p.y > 0) out.push(p.id - P.COLS); if (p.y < P.ROWS - 1) out.push(p.id + P.COLS);
-  return out;
-}
+const cx = (p) => p.c[0], cy = (p) => p.c[1];
+const neighbors = (p) => p.nb;
+const areaOf = (ids) => { let a = 0; for (const id of ids) a += F.parcels[id].area; return a; };
 function components(set) {
   const seen = new Set(), comps = [];
   for (const id of set) {
@@ -86,14 +52,17 @@ function components(set) {
   return comps;
 }
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-// 작업 경로: 보관소에서 출발해, 농로로 나뉜 열을 왼쪽부터 차례로 지그재그로 돌며 모든 필지를 지나고 돌아온다.
-// 구멍은 건너뛰고(빈 칸만큼 경로가 길어짐), 편입한 땅은 경로에 더해진다. 대안마다 경로가 달라진다.
+// 작업 경로: 보관소에서 출발해, 단지를 동서로 일정 폭의 띠로 나누고 띠마다 남북으로 지그재그로 돌며
+// 모든 필지를 지나고 돌아온다. 구멍은 건너뛰고, 편입한 땅은 경로에 더해진다. 대안마다 경로가 달라진다.
 function coverPath(set) {
-  const cols = new Map();
-  for (const id of set) { const p = F.parcels[id]; if (!cols.has(p.x)) cols.set(p.x, []); cols.get(p.x).push(p); }
+  const bands = new Map();
+  for (const id of set) { const p = F.parcels[id], b = Math.floor(cx(p) / P.BAND_M); if (!bands.has(b)) bands.set(b, []); bands.get(b).push(p); }
+  let keys = [...bands.keys()].sort((a, b) => a - b);
+  const mid = (keys[0] + keys[keys.length - 1]) / 2 * P.BAND_M;
+  if (F.depot[0] > mid) keys = keys.reverse();          // 보관소에 가까운 쪽 띠부터
   const path = [F.depot];
-  [...cols.keys()].sort((a, b) => a - b).forEach((x, i) => {
-    const list = cols.get(x).sort((a, b) => (i % 2 ? b.y - a.y : a.y - b.y));
+  keys.forEach((b, i) => {
+    const list = bands.get(b).sort((p, q) => (i % 2 ? cy(q) - cy(p) : cy(p) - cy(q)));
     list.forEach((p) => path.push([cx(p), cy(p)]));
   });
   path.push(F.depot);
@@ -103,7 +72,7 @@ function coverPath(set) {
 
 // ---------------------------------------------------------------- 평가
 function evaluate(set, extra = {}) {
-  const area = set.size * P.HA;
+  const area = areaOf(set);
   const comps = components(set);
   const t = coverPath(set);
   let edges = 0;
@@ -134,7 +103,7 @@ const RANK = { safe: 0, ok: 1, bad: 2 };
 // off: 해제(거절)된 참여 필지 id. unit: 지도 클릭 단위(farm = 농가 전체, parcel = 필지 한 칸)
 const S = { off: new Set(), unit: "farm", areaMin: 20, farmMin: 5, target: null, pay: "div", shock: 20, sel: null, tab: 1, hover: null };
 const refusedFarms = () => new Set([...S.off].map((id) => F.parcels[id].owner));
-let F = buildField(P.SEED);
+let F = null; // init()에서 window.EF_DATA로 채운다
 let VIEW = null; // 마지막 계산 결과
 
 function memberParcels() { return F.parcels.filter((p) => p.member).map((p) => p.id); }
@@ -159,37 +128,37 @@ function buildOptions() {
   }
   mk("keep", "그대로", "땅 추가 없이 경로만 다시 짬", base, 0);
 
-  // 경작권 교환: 구멍 필지를 법인이 짓고, 같은 수의 가장자리 필지를 거절 농가에 맡긴다
-  const holeSet = new Set(holes);
+  // 경작권 교환: 구멍 필지를 법인이 짓고, 면적이 비슷한 가장자리 필지를 거절 농가에 맡긴다
+  const holeSet = new Set(holes), holeArea = areaOf(holes);
   const nearHole = (id) => neighbors(F.parcels[id]).some((nb) => holeSet.has(nb));
   const coopNb = (id) => neighbors(F.parcels[id]).filter((nb) => base.has(nb)).length;
-  // 가장자리 = 단지 안 이웃이 적은 필지. 구멍 바로 옆 필지는 넘기지 않는다.
+  // 가장자리 = 단지 안 이웃이 적고 중심에서 먼 필지. 구멍 바로 옆 필지는 넘기지 않는다.
   const edgeCands = [...base].filter((id) => !nearHole(id))
     .sort((a, b) => coopNb(a) - coopNb(b) || distFromCenter(b) - distFromCenter(a));
-  let exSet = null, exGive = [];
-  if (edgeCands.length >= holes.length) {
-    exGive = edgeCands.slice(0, holes.length);
+  let exSet = null, exGive = [], given = 0;
+  for (const id of edgeCands) { if (given >= holeArea - 0.05) break; exGive.push(id); given += F.parcels[id].area; }
+  if (given >= holeArea - 0.05) {
     exSet = new Set([...base].filter((id) => !exGive.includes(id)).concat(holes));
-    mk("ex", "경작권 교환", `구멍 ${holes.length}필지 ↔ 가장자리 ${holes.length}필지`, exSet, nRefused, { exIn: holes, exOut: exGive });
+    mk("ex", "경작권 교환", `구멍 ${holes.length}필지(${holeArea.toFixed(1)}ha) ↔ 가장자리 ${exGive.length}필지(${given.toFixed(1)}ha)`, exSet, nRefused, { exIn: holes, exOut: exGive });
   }
 
-  // 땅 추가: 단지에 닿아 있는 비참여 농가를 농가 단위로 편입
+  // 땅 추가: 단지에 닿아 있는 주변 논(추정 비참여 농가)을 농가 단위로 편입. 밭·시설·다른 단지는 제외
   const touching = new Set();
-  for (const id of base) for (const nb of neighbors(F.parcels[id])) { const p = F.parcels[nb]; if (!p.member) touching.add(p.owner); }
+  for (const id of base) for (const nb of neighbors(F.parcels[id])) { const p = F.parcels[nb]; if (!p.member && !p.bg && p.owner) touching.add(p.owner); }
   const cand = [...touching].map((f) => {
     const ids = F.farms.get(f).parcels;
     const set = new Set([...base, ...ids]);
     return { f, ids, ev: evaluate(set, { added: [f] }) };
   }).sort((a, b) => a.ev.blocks - b.ev.blocks || b.ev.area - a.ev.area || b.ev.per.mid - a.ev.per.mid);
   const top = cand.slice(0, 4);
-  top.forEach((c) => mk(`add:${c.f}`, `${c.f} 편입`, `+${(c.ids.length * P.HA).toFixed(1)}ha · 경로 다시 짬`, new Set([...base, ...c.ids]), 1, { added: [c.f], addIds: c.ids }));
+  top.forEach((c) => mk(`add:${c.f}`, `${c.f} 편입`, `+${areaOf(c.ids).toFixed(1)}ha · 경로 다시 짬`, new Set([...base, ...c.ids]), 1, { added: [c.f], addIds: c.ids }));
   for (let i = 0; i < Math.min(3, top.length); i++) for (let j = i + 1; j < Math.min(3, top.length); j++) {
     const a = top[i], b = top[j], ids = [...a.ids, ...b.ids];
-    mk(`add2:${a.f}+${b.f}`, `${a.f} + ${b.f} 편입`, `+${(ids.length * P.HA).toFixed(1)}ha`, new Set([...base, ...ids]), 2, { added: [a.f, b.f], addIds: ids });
+    mk(`add2:${a.f}+${b.f}`, `${a.f} + ${b.f} 편입`, `+${areaOf(ids).toFixed(1)}ha`, new Set([...base, ...ids]), 2, { added: [a.f, b.f], addIds: ids });
   }
   if (exSet && top.length) {
     const c = top[0];
-    mk(`exadd:${c.f}`, `교환 + ${c.f} 편입`, `구멍 메움 + ${(c.ids.length * P.HA).toFixed(1)}ha`, new Set([...exSet, ...c.ids]), nRefused + 1, { exIn: holes, exOut: exGive, added: [c.f], addIds: c.ids });
+    mk(`exadd:${c.f}`, `교환 + ${c.f} 편입`, `구멍 메움 + ${areaOf(c.ids).toFixed(1)}ha`, new Set([...exSet, ...c.ids]), nRefused + 1, { exIn: holes, exOut: exGive, added: [c.f], addIds: c.ids });
   }
   return { opts, base, holes, candFarms: top.map((c) => c.f) };
 }
@@ -259,7 +228,7 @@ function renderStepper() {
 
 function renderBanner() {
   const b = $("banner"), { stage, keep, holes } = VIEW;
-  const holeHa = holes.length * P.HA;
+  const holeHa = areaOf(holes);
   const who = `${refusedFarms().size}농가 ${holes.length}필지 · ${ha(holeHa)}`;
   b.className = `banner s${stage}`;
   const gap = keep.ev.net.mid - VIEW.full.net.mid;
@@ -302,43 +271,50 @@ function renderJudge() {
     <p class="hint">참고: 면적대로 나누면 평당 배당 ${won(e.per.mid)} (농가 설득용 지표, 3번 탭)</p>`;
 }
 
-// 지도는 가로를 줄여 그린다(필지가 실제로는 100m × 30m라 너무 납작해 보이므로). 거리 계산은 미터 그대로 쓴다.
-const SX = 0.56;
 function renderMap() {
   const svg = $("map"), { sel, holes, candFarms } = VIEW;
-  const last = F.parcels[F.parcels.length - 1];
-  const W = (px(last) + P.PW) * SX + 20, H = py(last) + P.PH + 110;
-  svg.setAttribute("viewBox", `-70 -20 ${W + 70} ${H}`);
+  const W = F.meta.width, H = F.meta.height, u = W / 1000;     // u: 화면 크기에 맞춘 글자·기호 단위
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.innerHTML = "";
+  // 도로(OpenStreetMap)
+  const gr = el("g", { "pointer-events": "none" }, svg);
+  F.roads.forEach((line) => el("polyline", { points: line.map((q) => q.join(",")).join(" "), fill: "none", stroke: "#cbc5b2", "stroke-width": 3, "vector-effect": "non-scaling-stroke", "stroke-linecap": "round" }, gr));
   const exIn = new Set(sel.exIn || []), exOut = new Set(sel.exOut || []), add = new Set(sel.addIds || []);
   const candSet = new Set();
   candFarms.forEach((f) => F.farms.get(f).parcels.forEach((id) => candSet.add(id)));
   const holeSet = new Set(holes);
-  const g = el("g", {}, svg);
+  const hl = S.hover !== null ? hoverGroup(S.hover) : new Set();
+  const g = el("g", {}, svg), gl = el("g", { "pointer-events": "none" }, svg);
   F.parcels.forEach((p) => {
-    let fill = "var(--other)", stroke = "#cfccc2", dash = "", cls = "parcel", label = "";
+    let fill = "var(--other)", stroke = "#c9c6bb", dash = "", cls = "parcel", label = "", sw = 1;
+    if (p.bg) { fill = "#f3f2ee"; stroke = "#dedbd2"; }
     if (p.member && !holeSet.has(p.id)) { fill = "var(--coop-soft)"; stroke = "var(--coop)"; cls += " member"; }
-    if (holeSet.has(p.id)) { fill = "var(--hole-soft)"; stroke = "var(--hole)"; cls += " member"; label = "거절"; }
-    if (exIn.has(p.id)) { fill = "var(--ex-soft)"; stroke = "var(--ex)"; label = "교환"; }
-    if (exOut.has(p.id)) { fill = "#fff"; stroke = "var(--ex)"; dash = "5 3"; label = "→거절농가"; }
-    if (!p.member && candSet.has(p.id) && !add.has(p.id)) { fill = "#fff"; stroke = "var(--cand)"; dash = "5 3"; }
-    if (add.has(p.id)) { fill = "var(--cand-soft)"; stroke = "var(--cand)"; label = "편입"; }
-    if (S.hover !== null && hoverGroup(S.hover).has(p.id)) cls += " hl";
-    const r = el("rect", { x: px(p) * SX, y: py(p), width: P.PW * SX - 2, height: P.PH - 2, rx: 2, fill, stroke, class: cls, "data-id": p.id }, g);
+    if (holeSet.has(p.id)) { fill = "var(--hole-soft)"; stroke = "var(--hole)"; cls += " member"; label = "거절"; sw = 2; }
+    if (exIn.has(p.id)) { fill = "var(--ex-soft)"; stroke = "var(--ex)"; label = "교환"; sw = 2; }
+    if (exOut.has(p.id)) { fill = "#fff"; stroke = "var(--ex)"; dash = "4 3"; label = "넘김"; sw = 2; }
+    if (!p.member && candSet.has(p.id) && !add.has(p.id)) { fill = "#fff"; stroke = "var(--cand)"; dash = "4 3"; sw = 1.5; }
+    if (add.has(p.id)) { fill = "var(--cand-soft)"; stroke = "var(--cand)"; label = "편입"; sw = 2; }
+    if (hl.has(p.id)) cls += " hl";
+    const r = el("polygon", { points: p.poly.map((q) => q.join(",")).join(" "), fill, stroke, "stroke-width": sw, "vector-effect": "non-scaling-stroke", class: cls, "data-id": p.id }, g);
     if (dash) r.setAttribute("stroke-dasharray", dash);
-    const off = S.off.has(p.id), nFarm = F.farms.get(p.owner).parcels.length;
-    const scope = S.unit === "farm" ? `${p.owner}의 필지 ${nFarm}개 전체` : "이 필지 한 칸";
-    if (p.member) { r.setAttribute("tabindex", "0"); r.setAttribute("role", "button"); r.setAttribute("aria-label", `${p.owner} 필지, ${off ? "거절됨" : "참여 중"}. 누르면 ${scope}를 ${off ? "복구" : "해제"}`); }
+    const off = S.off.has(p.id);
+    if (p.member) {
+      const f = F.farms.get(p.owner);
+      const scope = S.unit === "farm" ? `${p.owner}의 필지 ${f.parcels.length}개(${f.area.toFixed(1)}ha) 전체` : `이 필지(${p.area.toFixed(2)}ha)`;
+      r.setAttribute("tabindex", "0"); r.setAttribute("role", "button");
+      r.setAttribute("aria-label", `${p.owner} 필지 ${p.area.toFixed(2)}ha, ${off ? "거절됨" : "참여 중"}. 누르면 ${scope}를 ${off ? "복구" : "해제"}`);
+    }
     const tt = el("title", {}, r);
-    tt.textContent = p.member ? `${p.owner} · ${off ? "거절" : "참여"}\n누르면 ${scope}를 ${off ? "복구" : "해제"}합니다` : `${p.owner} · 비참여 (${(nFarm * P.HA).toFixed(1)}ha)`;
-    if (label) { const t = el("text", { x: (px(p) + P.PW / 2) * SX - 1, y: py(p) + P.PH / 2 + 5, "text-anchor": "middle", "font-size": 13, "font-weight": 700, fill: stroke, "pointer-events": "none" }, g); t.textContent = label; }
+    tt.textContent = p.member ? `${p.owner}(추정) · ${p.area.toFixed(2)}ha · ${off ? "거절" : "참여"}`
+      : p.bg ? `${p.use} · 편입 대상 아님` : `${p.owner}(추정) · 비참여 논 ${p.area.toFixed(2)}ha`;
+    if (label && p.area >= 0.12) { const t = el("text", { x: cx(p), y: cy(p) + 6 * u, "text-anchor": "middle", "font-size": 17 * u, "font-weight": 700, fill: stroke }, gl); t.textContent = label; }
   });
-  // 경로
-  const pts = sel.ev.path.map((q) => `${q[0] * SX},${q[1]}`).join(" ");
-  el("polyline", { points: pts, fill: "none", stroke: "var(--ink)", "stroke-width": 2, "stroke-dasharray": "7 5", "stroke-linejoin": "round", "pointer-events": "none", opacity: 0.85 }, svg);
-  const [dx, dy] = F.depot;
-  el("rect", { x: dx * SX - 12, y: dy - 12, width: 24, height: 24, fill: "var(--ink)" }, svg);
-  const t = el("text", { x: dx * SX + 18, y: dy + 6, "font-size": 16, fill: "var(--ink)" }, svg); t.textContent = "농기계 보관소";
+  // 작업 경로
+  const pts = sel.ev.path.map((q) => q.join(",")).join(" ");
+  el("polyline", { points: pts, fill: "none", stroke: "var(--ink)", "stroke-width": 1.8, "vector-effect": "non-scaling-stroke", "stroke-dasharray": "6 4", "stroke-linejoin": "round", "pointer-events": "none", opacity: 0.85 }, svg);
+  const [dx, dy] = F.depot, ds = 22 * u;
+  el("rect", { x: dx - ds / 2, y: dy - ds / 2, width: ds, height: ds, fill: "var(--ink)", "pointer-events": "none" }, svg);
+  const t = el("text", { x: dx + ds, y: dy + 7 * u, "font-size": 20 * u, fill: "var(--ink)", "font-weight": 600, "pointer-events": "none", "paint-order": "stroke", stroke: "#fff", "stroke-width": 4 * u }, svg); t.textContent = "농기계 보관소";
 
   const e = sel.ev;
   const dKm = (e.routeKm - VIEW.full.routeKm) * P.OPS;
@@ -356,17 +332,17 @@ function renderOptions() {
     return `<tr class="opt ${isSel ? "sel" : ""} ${o.meets ? "" : "dis"}" data-key="${esc(o.key)}" tabindex="0" aria-selected="${isSel}">
       <td>${o.rank ? `<span class="rank">${o.rank}</span>` : "–"}</td>
       <td>${esc(o.name)}<span class="sub">${esc(o.sub)}</span>${o.meets ? "" : `<span class="why">${esc(o.why)}</span>`}</td>
-      <td>${e.area.toFixed(1)}</td>
-      <td>${o.persuade}명</td>
-      <td><b>${krw(e.net.mid)}</b><span class="sub">${eokS(e.net.lo)}~${eokS(e.net.hi)}</span><span class="sub">평당 ${won(e.per.mid)}</span></td>
+      <td class="num">${e.area.toFixed(1)}</td>
+      <td class="num">${o.persuade}명</td>
+      <td class="num" title="${krw(e.net.mid)}"><b>${eokS(e.net.mid)}</b><span class="sub">${(e.net.lo / 1e8).toFixed(2)}~${eokS(e.net.hi)}</span><span class="sub">평당 ${won(e.per.mid)}</span></td>
       <td>${o.meets ? chip(o.v) : `<span class="chip na">기준 미달</span>`}</td>
     </tr>`;
   }).join("");
   $("optTable").innerHTML = `<table aria-label="대안 비교">
-    <thead><tr><th>순위</th><th>대안</th><th>면적(ha)</th><th>설득</th><th>법인 순수익(연)</th><th>판정</th></tr></thead>
+    <thead><tr><th>순위</th><th>대안</th><th class="num">ha</th><th class="num">설득</th><th class="num">순수익(연)</th><th>판정</th></tr></thead>
     <tbody>${rows}</tbody></table>
     ${hiddenN || S.showAll ? `<button type="button" class="btn more" id="btnMore" aria-expanded="${!!S.showAll}">${S.showAll ? "▴ 상위 5개만 보기" : `▾ 나머지 대안 ${hiddenN}개 더 보기`}</button>` : ""}
-    <p class="hint">행을 누르면 지도와 왼쪽 판정이 그 안으로 바뀝니다. 순수익 아래 첫 줄은 보수~낙관 범위, 둘째 줄은 면적대로 나눈 평당 배당입니다.</p>`;
+    <p class="hint">행을 누르면 지도와 왼쪽 판정이 그 안으로 바뀝니다. 순수익(억 원) 아래 첫 줄은 보수~낙관 범위, 둘째 줄은 면적대로 나눈 평당 배당입니다. 금액에 마우스를 올리면 만 원 단위로 보입니다.</p>`;
 }
 
 function bars(items, key, fmt, baseKey) {
@@ -410,10 +386,10 @@ function renderPayout() {
       <td class="${p1[k].coop < 0 ? "neg" : "pos"}">${p1[k].coop >= 0 ? "+" : ""}${won(p1[k].coop)}</td></tr>`;
   // 농가별 배당금
   const byFarm = new Map();
-  for (const id of e.set) { const f = F.parcels[id].owner; byFarm.set(f, (byFarm.get(f) || 0) + 1); }
+  for (const id of e.set) { const p = F.parcels[id]; byFarm.set(p.owner, (byFarm.get(p.owner) || 0) + p.area); }
   const farmRows = [...byFarm.entries()].sort((a, b) => b[1] - a[1]).map(([f, n]) => {
-    const pyeong = n * P.HA * P.PY_PER_HA;
-    return `<tr><td>${esc(f)}</td><td>${(n * P.HA).toFixed(1)}</td><td>${man(pyeong * p0[S.pay].member)}</td><td class="${p1[S.pay].member < p0[S.pay].member - 0.5 ? "neg" : ""}">${man(pyeong * p1[S.pay].member)}</td></tr>`;
+    const pyeong = n * P.PY_PER_HA;
+    return `<tr><td>${esc(f)}</td><td>${n.toFixed(2)}</td><td>${man(pyeong * p0[S.pay].member)}</td><td class="${p1[S.pay].member < p0[S.pay].member - 0.5 ? "neg" : ""}">${man(pyeong * p1[S.pay].member)}</td></tr>`;
   }).join("");
   const shockLabel = S.shock ? `흉년 −${S.shock}%` : "평년";
   $("payout").innerHTML = `
@@ -457,21 +433,27 @@ function setHover(id) {
   if (id === S.hover) return;
   S.hover = id;
   const grp = id === null ? new Set() : hoverGroup(id);
-  document.querySelectorAll("#map rect[data-id]").forEach((x) => x.classList.toggle("hl", grp.has(Number(x.dataset.id))));
+  document.querySelectorAll("#map [data-id]").forEach((x) => x.classList.toggle("hl", grp.has(Number(x.dataset.id))));
   const p = id === null ? null : F.parcels[id];
   $("hoverInfo").textContent = !p ? "" : p.member
     ? (S.unit === "farm" ? `${p.owner} · 필지 ${grp.size}개가 함께 선택됩니다` : `${p.owner}의 필지 한 칸`)
-    : `${p.owner} · 비참여 (${(F.farms.get(p.owner).parcels.length * P.HA).toFixed(1)}ha)`;
+    : p.bg ? `${p.use} · 편입 대상 아님` : `${p.owner} · 비참여 (${F.farms.get(p.owner).area.toFixed(1)}ha) · 편입 후보`;
 }
 function selectTab(n) {
   S.tab = n;
   [1, 2, 3].forEach((i) => { $(`tab${i}`).setAttribute("aria-selected", String(i === n)); $(`pane${i}`).hidden = i !== n; });
 }
 function init() {
-  $("map").addEventListener("click", (ev) => { const r = ev.target.closest("rect[data-id]"); if (r) toggleParcel(Number(r.dataset.id)); });
-  $("map").addEventListener("keydown", (ev) => { if ((ev.key === "Enter" || ev.key === " ") && ev.target.dataset && ev.target.dataset.id) { ev.preventDefault(); const id = Number(ev.target.dataset.id); toggleParcel(id); document.querySelector(`#map rect[data-id="${id}"]`)?.focus(); } });
-  $("map").addEventListener("mouseover", (ev) => { const r = ev.target.closest("rect[data-id]"); setHover(r ? Number(r.dataset.id) : null); });
-  $("map").addEventListener("focusin", (ev) => { const r = ev.target.closest("rect[data-id]"); if (r) setHover(Number(r.dataset.id)); });
+  if (!window.EF_DATA) {
+    document.querySelector(".layout").innerHTML = `<p class="card">실측 단지 데이터(data/empty-field-heunghae.js)를 찾지 못했습니다. <code>python -m server.realdata.empty_field</code>로 만든 뒤 다시 여세요.</p>`;
+    return;
+  }
+  F = loadField(window.EF_DATA);
+  $("mapMeta").textContent = `포항 흥해 실측 필지 · 후보단지 ${F.meta.complex_id} (${F.meta.complex_area_ha}ha) · 소유자 추정`;
+  $("map").addEventListener("click", (ev) => { const r = ev.target.closest("[data-id]"); if (r) toggleParcel(Number(r.dataset.id)); });
+  $("map").addEventListener("keydown", (ev) => { if ((ev.key === "Enter" || ev.key === " ") && ev.target.dataset && ev.target.dataset.id) { ev.preventDefault(); const id = Number(ev.target.dataset.id); toggleParcel(id); document.querySelector(`#map [data-id="${id}"]`)?.focus(); } });
+  $("map").addEventListener("mouseover", (ev) => { const r = ev.target.closest("[data-id]"); setHover(r ? Number(r.dataset.id) : null); });
+  $("map").addEventListener("focusin", (ev) => { const r = ev.target.closest("[data-id]"); if (r) setHover(Number(r.dataset.id)); });
   $("map").addEventListener("mouseleave", () => setHover(null));
   $("segUnit").addEventListener("click", (ev) => {
     const b = ev.target.closest("button"); if (!b) return;

@@ -22,9 +22,13 @@
 2. **기계비·경로**: 대안별 작업시간과 트랙터 경로
 3. **배당금·흉년**: 지급 방식별 배당금과 흉년 때 변화
 
+지도는 **흥해 실측 필지**다. 후보단지 시뮬레이터가 고른 단지 6(논 23.2ha)과 주변 260m 안의 필지를 쓴다.
+소유자는 공개되지 않아 이웃한 필지를 농가당 약 1.8ha로 묶어 추정한다. 이 규모는 2026 지원사업에 선정된 위천친환경영농조합법인(30ha·17농가)에 맞춘 값이다.
 서버 없이 브라우저에서 계산하고, 경제 근거는 국가데이터처 2025년산 논벼 생산비조사다.
+단지 데이터는 `python -m server.realdata.empty_field --complex 6`으로 다시 만든다(`web/data/empty-field-heunghae.js`).
 
-![빈 필드 시뮬레이터: 거절 2건으로 기준 미충족이 된 상황](docs/images/empty-field.png)
+![빈 필드 시뮬레이터: 흥해 실측 단지에서 거절 3농가로 기준 미충족이 된 상황](docs/images/empty-field.png)
+
 수익 흐름 근거는 [docs/revenue-model.md](docs/revenue-model.md)에 있다.
 
 기획 내용(초록·문제·선행·방법론·데이터·산출물)은 [docs/service-plan.md](docs/service-plan.md)에 있다.
