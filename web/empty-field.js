@@ -119,22 +119,24 @@ function evaluate(set, extra = {}) {
   const fieldH = area * P.OPS * 0.4;
   const machineWon = (setupH + travelH + turnH) * P.MACH_WON_H;
   const pyeong = area * P.PY_PER_HA;
-  const per = {};
-  for (const k of ["lo", "mid", "hi"]) per[k] = pyeong ? ((area * (P.REV[k] - P.COST) * 1e4 - machineWon) / pyeong) : 0;
+  // 법인 순수익(원/년)과, 면적 비례로 나눌 때의 평당 배당
+  const net = {}, per = {};
+  for (const k of ["lo", "mid", "hi"]) { net[k] = area * (P.REV[k] - P.COST) * 1e4 - machineWon; per[k] = pyeong ? net[k] / pyeong : 0; }
   const farmSet = new Set([...set].map((id) => F.parcels[id].owner));
   const memberFarms = [...farmSet].filter((f) => F.farms.get(f).member || (extra.added || []).includes(f));
   return {
     set, area, blocks: comps.length, routeKm: t.km * P.DETOUR, path: t.path, edges,
     hours: setupH + travelH + turnH + fieldH, machineWon, per, pyeong,
-    farms: memberFarms.length, net: { mid: area * (P.REV.mid - P.COST) * 1e4 - machineWon },
+    farms: memberFarms.length, net,
   };
 }
-function verdict(per, target) { return per.lo >= target ? "safe" : per.mid >= target ? "ok" : "bad"; }
+// 목표 판정은 법인 순수익(1차 고객인 법인의 질문)으로 한다. target은 원 단위.
+function verdict(net, target) { return net.lo >= target ? "safe" : net.mid >= target ? "ok" : "bad"; }
 const VERD = { safe: ["안전", "safe"], ok: ["가능", "ok"], bad: ["미달", "bad"] };
 const RANK = { safe: 0, ok: 1, bad: 2 };
 
 // ---------------------------------------------------------------- 상태
-const S = { refused: new Set(), areaMin: 20, farmMin: 5, target: 2000, pay: "div", shock: 20, sel: null, tab: 1, hoverFarm: null };
+const S = { refused: new Set(), areaMin: 20, farmMin: 5, target: null, pay: "div", shock: 20, sel: null, tab: 1, hoverFarm: null };
 let F = buildField(P.SEED);
 let VIEW = null; // 마지막 계산 결과
 
@@ -150,7 +152,7 @@ function buildOptions() {
     const why = [];
     if (ev.area + 1e-9 < S.areaMin) why.push(`면적 ${(S.areaMin - ev.area).toFixed(1)}ha 부족`);
     if (ev.farms < S.farmMin) why.push(`농가 ${S.farmMin - ev.farms}명 부족`);
-    opts.push({ key, name, sub, persuade, meets, why: why.join(" · "), v: verdict(ev.per, S.target), ...meta, ev });
+    opts.push({ key, name, sub, persuade, meets, why: why.join(" · "), v: verdict(ev.net, S.target), ...meta, ev });
   };
 
   if (!S.refused.size) {
@@ -200,7 +202,7 @@ function distFromCenter(id) {
 }
 
 function rankOptions(opts) {
-  const ok = opts.filter((o) => o.meets).sort((a, b) => RANK[a.v] - RANK[b.v] || a.persuade - b.persuade || b.ev.per.mid - a.ev.per.mid);
+  const ok = opts.filter((o) => o.meets).sort((a, b) => RANK[a.v] - RANK[b.v] || a.persuade - b.persuade || b.ev.net.mid - a.ev.net.mid);
   const no = opts.filter((o) => !o.meets).sort((a, b) => b.ev.area - a.ev.area);
   ok.forEach((o, i) => { o.rank = i + 1; });
   return ok.concat(no);
@@ -210,6 +212,12 @@ function rankOptions(opts) {
 const $ = (id) => document.getElementById(id);
 const won = (v) => `${Math.round(v).toLocaleString("ko-KR")}원`;
 const man = (v) => `${Math.round(v / 1e4).toLocaleString("ko-KR")}만 원`;
+const eokS = (v) => `${(v / 1e8).toFixed(2)}억`;
+// 큰 금액: 1억 5,900만 원
+const krw = (v) => {
+  const sign = v < 0 ? "−" : "", a = Math.abs(v), eok = Math.floor(a / 1e8), m = Math.round((a - eok * 1e8) / 1e4);
+  return sign + (eok ? `${eok}억${m ? ` ${m.toLocaleString("ko-KR")}만` : ""} 원` : `${m.toLocaleString("ko-KR")}만 원`);
+};
 const ha = (v) => `${v.toFixed(1)}ha`;
 const chip = (v) => `<span class="chip ${VERD[v][1]}">${VERD[v][0]}</span>`;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -219,13 +227,18 @@ function el(tag, attrs = {}, parent) { const e = document.createElementNS(SVGNS,
 // ---------------------------------------------------------------- 메인 계산·그리기
 function recompute() {
   CENTER = null;
+  const full = evaluate(new Set(memberParcels()));
+  if (S.target === null) {
+    // 기본 목표 = 전원 참여 때의 순수익(원래 계획), 100만 원 단위로 내림
+    S.target = Math.floor(full.net.mid / 1e6) * 1e6;
+    $("inTarget").value = Math.round(S.target / 1e4);
+  }
   const { opts, holes, candFarms } = buildOptions();
   const ranked = rankOptions(opts);
   const keep = opts.find((o) => o.key === "keep" || o.key === "base");
   const stage = !S.refused.size ? 0 : keep.meets ? 1 : 2;
   if (!ranked.some((o) => o.key === S.sel)) S.sel = (ranked.find((o) => o.rank === 1) || ranked[0]).key;
   const sel = ranked.find((o) => o.key === S.sel);
-  const full = evaluate(new Set(memberParcels()));
   VIEW = { ranked, sel, stage, holes, candFarms: candFarms || [], keep, full };
   renderStepper(); renderBanner(); renderJudge(); renderMap(); renderOptions(); renderMachine(); renderPayout();
 }
@@ -242,9 +255,11 @@ function renderBanner() {
   const b = $("banner"), { stage, keep, holes } = VIEW;
   const nRef = S.refused.size, holeHa = holes.length * P.HA;
   b.className = `banner s${stage}`;
-  if (stage === 0) b.innerHTML = `<b>① 기본 필지화 · 전원 참여</b>참여 농가 ${keep.ev.farms}곳, ${ha(keep.ev.area)}. 이 결과가 모든 비교의 기준선입니다. 지도에서 참여 농가를 눌러 거절을 시험해 보세요.`;
-  else if (stage === 1) b.innerHTML = `<b>② 구멍이 났지만 지원 기준 충족</b>거절 ${nRef}농가 · ${ha(holeHa)}가 빠져도 ${ha(keep.ev.area)}로 기준(${S.areaMin}ha)을 넘습니다. 그대로 가도 되며, 아래에서 더 나은 대안과 비교할 수 있습니다.`;
-  else b.innerHTML = `<b>③ 구멍 때문에 지원 기준 미충족</b>거절 ${nRef}농가 · ${ha(holeHa)}가 빠져 ${keep.why}. 땅 추가가 들어간 대안만 기준을 넘깁니다.`;
+  const gap = keep.ev.net.mid - VIEW.full.net.mid;
+  const netLine = `법인 순수익 ${krw(keep.ev.net.mid)} (전원 참여 대비 ${gap >= 0 ? "+" : "−"}${krw(Math.abs(gap))})`;
+  if (stage === 0) b.innerHTML = `<b>① 기본 필지화 · 전원 참여</b>참여 농가 ${keep.ev.farms}곳, ${ha(keep.ev.area)}, 법인 순수익 ${krw(keep.ev.net.mid)}. 이 결과가 모든 비교의 기준선입니다. 지도에서 참여 농가를 눌러 거절을 시험해 보세요.`;
+  else if (stage === 1) b.innerHTML = `<b>② 구멍이 났지만 지원 기준 충족</b>거절 ${nRef}농가 · ${ha(holeHa)}가 빠져도 ${ha(keep.ev.area)}로 기준(${S.areaMin}ha)을 넘습니다. 그대로 가면 ${netLine}. 아래에서 순수익을 되찾는 대안과 비교하세요.`;
+  else b.innerHTML = `<b>③ 구멍 때문에 지원 기준 미충족</b>거절 ${nRef}농가 · ${ha(holeHa)}가 빠져 ${keep.why}. 그대로 가면 ${netLine}. 땅 추가가 들어간 대안만 기준을 넘깁니다.`;
 }
 
 function renderJudge() {
@@ -253,7 +268,8 @@ function renderJudge() {
   const areaPct = Math.min(100, e.area / Math.max(S.areaMin * 1.25, e.area) * 100);
   const minPct = S.areaMin / Math.max(S.areaMin * 1.25, e.area) * 100;
   const areaOk = e.area + 1e-9 >= S.areaMin, farmOk = e.farms >= S.farmMin, conn = e.blocks === 1;
-  const lo = 1600, hi = 2800, pos = (v) => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100));
+  const ref = Math.max(S.target, VIEW.full.net.hi, 1);
+  const lo = ref * 0.5, hi = ref * 1.1, pos = (v) => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100));
   $("judge").innerHTML = `
     <div class="crit">
       <span>면적</span><span class="v ${areaOk ? "pass" : "fail"}">${ha(e.area)} ${areaOk ? "✓" : "✗"}</span>
@@ -264,15 +280,16 @@ function renderJudge() {
       <span>참여 농가</span><span class="v ${farmOk ? "pass" : "fail"}">${e.farms}명 ${farmOk ? "✓" : "✗"}</span>
       <span>연결성 (권장)</span><span class="v ${conn ? "pass" : "soft"}">${conn ? "한 덩어리 ✓" : `블록 ${e.blocks}개 !`}</span>
     </div>
-    <h3 style="margin-top:12px">평당 배당 범위 ${chip(o.v)}</h3>
-    <div class="range" role="img" aria-label="평당 배당 ${won(e.per.lo)}에서 ${won(e.per.hi)}, 기준 ${won(e.per.mid)}, 목표 ${won(S.target)}">
+    <h3 style="margin-top:12px">법인 순수익 (연) ${chip(o.v)}</h3>
+    <div class="range" role="img" aria-label="법인 순수익 ${krw(e.net.lo)}에서 ${krw(e.net.hi)}, 기준 ${krw(e.net.mid)}, 목표 ${krw(S.target)}">
       <div class="track"></div>
-      <div class="band" style="left:${pos(e.per.lo)}%;width:${pos(e.per.hi) - pos(e.per.lo)}%"></div>
-      <div class="dot" style="left:${pos(e.per.mid)}%"></div>
+      <div class="band" style="left:${pos(e.net.lo)}%;width:${pos(e.net.hi) - pos(e.net.lo)}%"></div>
+      <div class="dot" style="left:${pos(e.net.mid)}%"></div>
       <div class="tgt" style="left:${pos(S.target)}%" title="목표"></div>
     </div>
-    <div class="scale"><span>${won(e.per.lo)}</span><span><b>기준 ${won(e.per.mid)}</b></span><span>${won(e.per.hi)}</span></div>
-    <p class="hint">검은 선 = 목표 ${won(S.target)} · 전원 참여 기준선 ${won(VIEW.full.per.mid)}</p>`;
+    <div class="scale"><span>${krw(e.net.lo)}</span><span><b>기준 ${krw(e.net.mid)}</b></span><span>${krw(e.net.hi)}</span></div>
+    <p class="hint">검은 선 = 목표 ${krw(S.target)} · 전원 참여 기준선 ${krw(VIEW.full.net.mid)}</p>
+    <p class="hint">참고: 면적대로 나누면 평당 배당 ${won(e.per.mid)} (농가 설득용 지표, 3번 탭)</p>`;
 }
 
 // 지도는 가로를 줄여 그린다(필지가 실제로는 100m × 30m라 너무 납작해 보이므로). 거리 계산은 미터 그대로 쓴다.
@@ -327,15 +344,15 @@ function renderOptions() {
       <td>${esc(o.name)}<span class="sub">${esc(o.sub)}</span>${o.meets ? "" : `<span class="why">${esc(o.why)}</span>`}</td>
       <td>${e.area.toFixed(1)}</td>
       <td>${o.persuade}명</td>
-      <td><b>${won(e.per.mid)}</b><span class="sub">${Math.round(e.per.lo).toLocaleString("ko-KR")}~${Math.round(e.per.hi).toLocaleString("ko-KR")}</span></td>
+      <td><b>${krw(e.net.mid)}</b><span class="sub">${eokS(e.net.lo)}~${eokS(e.net.hi)}</span><span class="sub">평당 ${won(e.per.mid)}</span></td>
       <td>${o.meets ? chip(o.v) : `<span class="chip na">기준 미달</span>`}</td>
     </tr>`;
   }).join("");
   $("optTable").innerHTML = `<table aria-label="대안 비교">
-    <thead><tr><th>순위</th><th>대안</th><th>면적(ha)</th><th>설득</th><th>평당 배당</th><th>판정</th></tr></thead>
+    <thead><tr><th>순위</th><th>대안</th><th>면적(ha)</th><th>설득</th><th>법인 순수익(연)</th><th>판정</th></tr></thead>
     <tbody>${rows}</tbody></table>
     ${hiddenN || S.showAll ? `<button type="button" class="btn more" id="btnMore" aria-expanded="${!!S.showAll}">${S.showAll ? "▴ 상위 5개만 보기" : `▾ 나머지 대안 ${hiddenN}개 더 보기`}</button>` : ""}
-    <p class="hint">행을 누르면 지도와 왼쪽 판정이 그 안으로 바뀝니다. 평당 배당 아래 숫자는 보수~낙관 범위입니다.</p>`;
+    <p class="hint">행을 누르면 지도와 왼쪽 판정이 그 안으로 바뀝니다. 순수익 아래 첫 줄은 보수~낙관 범위, 둘째 줄은 면적대로 나눈 평당 배당입니다.</p>`;
 }
 
 function bars(items, key, fmt, baseKey) {
@@ -428,7 +445,7 @@ function init() {
     const tr = ev.target.closest("tr[data-key]"); if (tr) { S.sel = tr.dataset.key; recompute(); }
   });
   $("optTable").addEventListener("keydown", (ev) => { const tr = ev.target.closest("tr[data-key]"); if (tr && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); S.sel = tr.dataset.key; recompute(); document.querySelector(`tr[data-key="${CSS.escape(S.sel)}"]`)?.focus(); } });
-  $("inTarget").addEventListener("input", (ev) => { S.target = Number(ev.target.value) || 0; recompute(); });
+  $("inTarget").addEventListener("input", (ev) => { S.target = (Number(ev.target.value) || 0) * 1e4; recompute(); });
   $("inFarmMin").addEventListener("input", (ev) => { S.farmMin = Number(ev.target.value) || 0; recompute(); });
   $("inShock").addEventListener("input", (ev) => { S.shock = Number(ev.target.value); renderPayout(); });
   bindSeg("segArea", "areaMin", Number);
