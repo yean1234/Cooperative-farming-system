@@ -134,6 +134,11 @@ def scene_indices(scn: dict, scene: dict) -> dict:
     green = read_band(a["green"]["href"], win)
     nir = read_band(a["nir"]["href"], win)
     red = read_band(a["red"]["href"], win)
+    # SWIR(B11)은 20m 격자라 창을 절반 크기로 읽고 2배로 늘린다. 물은 SWIR를 강하게 흡수해 MNDWI가 담수 판정에 더 낫다.
+    with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif"):
+        with rasterio.open(a["swir16"]["href"]) as ds:
+            w2 = Window(win.col_off / 2, win.row_off / 2, win.width / 2, win.height / 2)
+            swir = ds.read(1, window=w2, out_shape=(int(win.height), int(win.width)), resampling=rasterio.enums.Resampling.bilinear).astype(np.float32)
     # SCL은 20m 격자라 창을 절반 크기로 읽고 2배로 늘린다
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif"):
         with rasterio.open(a["scl"]["href"]) as ds:
@@ -143,12 +148,14 @@ def scene_indices(scn: dict, scene: dict) -> dict:
     with np.errstate(invalid="ignore", divide="ignore"):
         ndwi = (green - nir) / (green + nir)
         ndvi = (nir - red) / (nir + red)
+        mndwi = (green - swir) / (green + swir)
     cover = zonal_mean(valid.astype(np.float32), labels, np.ones_like(valid), n)
     return {
         "id": scene["id"],
         "date": scene["properties"]["datetime"][:10],
         "ndwi": zonal_mean(ndwi, labels, valid, n),
         "ndvi": zonal_mean(ndvi, labels, valid, n),
+        "mndwi": zonal_mean(mndwi, labels, valid, n),
         "cover": cover,
     }
 
@@ -172,15 +179,65 @@ def otsu(x: np.ndarray, bins: int = 64) -> float:
     return thr
 
 
-def components(scn: dict, mask: np.ndarray) -> list[list[int]]:
-    """adjacency(인접 간선)로 mask가 참인 필지의 연결 덩어리를 만든다."""
-    n = len(mask)
-    nb: list[list[int]] = [[] for _ in range(n)]
+def neighbor_lists(scn: dict, link_m: float = 0.0) -> list[set]:
+    """인접 간선에, 경계상자 간격이 link_m 이내인 필지 쌍을 더한 이웃 목록. 농로·수로 너머 필지를 잇는다."""
+    feats = scn["parcels"]["features"]
+    n = len(feats)
+    nb: list[set] = [set() for _ in range(n)]
     for i, j, *_ in scn.get("adjacency", []):
-        i, j = int(i), int(j)
-        if mask[i] and mask[j]:
-            nb[i].append(j)
-            nb[j].append(i)
+        nb[int(i)].add(int(j))
+        nb[int(j)].add(int(i))
+    if link_m > 0:
+        lon0, lat0 = scn["meta"]["origin"]
+        kx = 111_320.0 * np.cos(np.radians(lat0))
+        ky = 110_574.0
+        bb = np.zeros((n, 4))
+        for i, f in enumerate(feats):
+            r = np.asarray(f["geometry"]["coordinates"][0])
+            x = (r[:, 0] - lon0) * kx
+            y = (r[:, 1] - lat0) * ky
+            bb[i] = (x.min(), y.min(), x.max(), y.max())
+        cell = max(link_m, 1.0) * 4
+        grid: dict = {}
+        for i in range(n):
+            for gx in range(int(bb[i, 0] // cell), int(bb[i, 2] // cell) + 1):
+                for gy in range(int(bb[i, 1] // cell), int(bb[i, 3] // cell) + 1):
+                    grid.setdefault((gx, gy), []).append(i)
+        for cands in grid.values():
+            for a in range(len(cands)):
+                i = cands[a]
+                for b in range(a + 1, len(cands)):
+                    j = cands[b]
+                    gap_x = max(bb[i, 0], bb[j, 0]) - min(bb[i, 2], bb[j, 2])
+                    gap_y = max(bb[i, 1], bb[j, 1]) - min(bb[i, 3], bb[j, 3])
+                    if max(gap_x, 0) <= link_m and max(gap_y, 0) <= link_m:
+                        nb[i].add(j)
+                        nb[j].add(i)
+    return nb
+
+
+def smooth_mask(mask: np.ndarray, nb: list[set], eligible: np.ndarray, fill_ratio: float = 0.6, passes: int = 2) -> np.ndarray:
+    """이웃 대다수가 mask이면 넣고(구멍 메움), 이웃 중 mask가 하나도 없으면 뺀다(점 잡음 제거)."""
+    m = mask.copy()
+    for _ in range(passes):
+        add = np.zeros_like(m)
+        for i in np.flatnonzero(eligible & ~m):
+            if nb[i]:
+                share = sum(m[j] for j in nb[i]) / len(nb[i])
+                if share >= fill_ratio:
+                    add[i] = True
+        m |= add
+        drop = np.array([m[i] and nb[i] and not any(m[j] for j in nb[i]) for i in range(len(m))], dtype=bool)
+        m &= ~drop
+    return m
+
+
+def components(scn: dict, mask: np.ndarray, nb: list[set] | None = None) -> list[list[int]]:
+    """이웃 목록(기본: adjacency)으로 mask가 참인 필지의 연결 덩어리를 만든다."""
+    n = len(mask)
+    if nb is None:
+        nb = neighbor_lists(scn)
+    nb = [[j for j in nb[i] if mask[i] and mask[j]] for i in range(n)]
     seen = np.zeros(n, dtype=bool)
     comps = []
     for s in np.flatnonzero(mask):
@@ -238,7 +295,11 @@ def main() -> None:
     ap.add_argument("--dates", nargs="+", default=["2023-06-01/2023-06-30"], help="담수기 장면 날짜 또는 기간(시작/끝). 여러 장면이면 필지별 NDWI 중앙값")
     ap.add_argument("--max-cloud", type=float, default=30.0)
     ap.add_argument("--n-scenes", type=int, default=2, help="기간을 줬을 때 쓸 가장 맑은 장면 수")
+    ap.add_argument("--index", choices=["mndwi", "ndwi"], default="mndwi", help="담수 판정 지수. MNDWI(녹색-SWIR)가 어린 벼가 있어도 물을 잘 잡는다")
     ap.add_argument("--ndwi", type=float, help="담수 판정 문턱값. 없으면 논 필지 분포에서 Otsu로 정한다")
+    ap.add_argument("--no-converted", action="store_true", help="지목은 답인데 팜맵이 밭으로 판독한 필지(밭작물 전환)를 후보에서 뺀다")
+    ap.add_argument("--link-m", type=float, default=30.0, help="이 간격(m) 이내 필지를 같은 덩어리로 잇는다(농로·수로 너머)")
+    ap.add_argument("--smooth", type=int, default=2, help="구멍 메움·점 잡음 제거 반복 횟수(0이면 안 함)")
     ap.add_argument("--min-cover", type=float, default=0.6, help="필지 안 유효(구름 아님) 화소 비율 하한")
     ap.add_argument("--min-ha", type=float, default=60.0, help="단지로 볼 덩어리 최소 면적")
     ap.add_argument("--max-ha", type=float, default=250.0)
@@ -265,7 +326,8 @@ def main() -> None:
     for p in per:
         ok = np.isfinite(p["ndwi"]) & (p["cover"] >= a.min_cover)
         log(f"[지표] {p['date']}: 유효 필지 {ok.sum()}/{n}, 논 NDWI 중앙값 {np.nanmedian(p['ndwi'][paddy & ok]):.3f}")
-    ndwi_all = np.vstack([np.where(p["cover"] >= a.min_cover, p["ndwi"], np.nan) for p in per])
+    key = a.index
+    ndwi_all = np.vstack([np.where(p["cover"] >= a.min_cover, p[key], np.nan) for p in per])
     ndvi_all = np.vstack([np.where(p["cover"] >= a.min_cover, p["ndvi"], np.nan) for p in per])
     with np.errstate(all="ignore"):
         ndwi = np.nanmedian(ndwi_all, axis=0)
@@ -274,11 +336,22 @@ def main() -> None:
     valid = np.isfinite(ndwi)
     thr = a.ndwi if a.ndwi is not None else otsu(ndwi[paddy & valid])
     lo, hi = np.nanpercentile(ndwi[paddy & valid], [10, 90])
-    log(f"[문턱] NDWI {thr:.3f} ({'지정' if a.ndwi is not None else 'Otsu'}), 논 10~90분위 {lo:.3f}~{hi:.3f}")
+    log(f"[문턱] {key.upper()} {thr:.3f} ({'지정' if a.ndwi is not None else 'Otsu'}), 논 10~90분위 {lo:.3f}~{hi:.3f}")
     dry = paddy & valid & (ndwi < thr)
     log(f"[판정] 담수 안 된 논 {dry.sum()}개 {area_ha[dry].sum():.1f}ha / 담수 논 {(paddy & valid & ~dry).sum()}개")
+    jimok_paddy = np.array([f["properties"].get("jimok") == "답" for f in feats])
+    converted = jimok_paddy & np.array([f["properties"].get("land_use") == "밭" for f in feats])
+    cand = dry.copy()
+    if not a.no_converted:
+        cand |= converted
+        log(f"[전환] 지목 답인데 팜맵 밭 판독 {converted.sum()}개 {area_ha[converted].sum():.1f}ha 를 후보에 더함")
+    nb = neighbor_lists(scn, a.link_m)
+    if a.smooth:
+        before = cand.sum()
+        cand = smooth_mask(cand, nb, paddy | jimok_paddy, passes=a.smooth)
+        log(f"[스무딩] {before}개 → {cand.sum()}개 (간격 {a.link_m:g}m 이내 연결, {a.smooth}회)")
 
-    comps = sorted(components(scn, dry), key=lambda c: -area_ha[c].sum())
+    comps = sorted(components(scn, cand, nb), key=lambda c: -area_ha[c].sum())
     truth = np.zeros(n, dtype=int)
     k = 0
     for comp in comps:
@@ -292,10 +365,6 @@ def main() -> None:
         truth[comp] = k
         log(f"  truth {k}: 필지 {len(comp)}개 {ha:.1f}ha")
     if a.fill_holes and k:
-        nb: list[set] = [set() for _ in range(n)]
-        for i, j, *_ in scn.get("adjacency", []):
-            nb[int(i)].add(int(j))
-            nb[int(j)].add(int(i))
         for i in np.flatnonzero(paddy & (truth == 0)):
             around = {truth[j] for j in nb[i] if truth[j] > 0}
             if len(around) == 1 and all(truth[j] > 0 for j in nb[i]) and nb[i]:
@@ -310,9 +379,10 @@ def main() -> None:
         p["s2_ndwi"] = None if not np.isfinite(ndwi[i]) else round(float(ndwi[i]), 4)
         p["s2_ndvi"] = None if not np.isfinite(ndvi[i]) else round(float(ndvi[i]), 4)
         p["s2_dry_paddy"] = bool(dry[i])
+        p["s2_candidate"] = bool(cand[i])
     scn["meta"]["truth_complexes"] = int(k)
     scn["meta"]["truth_source"] = {
-        "method": "Sentinel-2 L2A NDWI: 담수기(6월)에 담수되지 않은 논 필지의 연결 덩어리",
+        "method": f"Sentinel-2 L2A {key.upper()}: 담수기(6월)에 담수되지 않은 논 + 팜맵이 밭으로 판독한 지목 답 필지의 연결 덩어리(간격 {a.link_m:g}m, 스무딩 {a.smooth}회)",
         "scenes": [p["id"] for p in per],
         "ndwi_threshold": round(float(thr), 4),
         "min_ha": a.min_ha,
@@ -330,7 +400,7 @@ def main() -> None:
                 fh.write(f"{p['id']},{p.get('land_use')},{area_ha[i]:.3f},{p['s2_ndwi']},{p['s2_ndvi']},{int(dry[i])},{truth[i]}\n")
     if a.png:
         a.png.parent.mkdir(parents=True, exist_ok=True)
-        draw_png(scn, truth, dry, a.png)
+        draw_png(scn, truth, cand, a.png)
         log(f"[그림] {a.png}")
 
 
