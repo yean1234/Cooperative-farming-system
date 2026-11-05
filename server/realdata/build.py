@@ -64,7 +64,7 @@ def _log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def build(shp: Path, bbox, name: str, soil_budget: int = 900, use_soil: bool = True, use_vworld: bool = True) -> dict:
+def build(shp: Path, bbox, name: str, soil_budget: int = 900, use_soil: bool = True, use_vworld: bool = True, use_osm: bool = True) -> dict:
     t0 = time.perf_counter()
     status: dict[str, dict] = {}
     warnings: list[str] = []
@@ -83,12 +83,21 @@ def build(shp: Path, bbox, name: str, soil_budget: int = 900, use_soil: bool = T
     status["dem"] = {"used": True, **dinfo}
     _log(f"[DEM] 경사 중앙값 {np.median(slopes):.1f}%, 표고 {dinfo['elev_range_m']} m")
 
-    roads, rinfo = osm.fetch_roads(bbox)
-    acc = osm.road_access(feats, roads)
-    for f, a in zip(feats, acc):
-        f["properties"]["road_osm"] = a
-    status["osm"] = {"used": True, **rinfo}
-    _log(f"[OSM] 도로 {rinfo['n_ways']}개, 도로선 {osm.ROAD_TOL:g}m 이내 필지 {sum(acc)}개")
+    roads: list[dict] = []
+    if use_osm:
+        try:
+            roads, rinfo = osm.fetch_roads(bbox)
+            acc = osm.road_access(feats, roads)
+            for f, a in zip(feats, acc):
+                f["properties"]["road_osm"] = a
+            status["osm"] = {"used": True, **rinfo}
+            _log(f"[OSM] 도로 {rinfo['n_ways']}개, 도로선 {osm.ROAD_TOL:g}m 이내 필지 {sum(acc)}개")
+        except Exception as exc:  # noqa: BLE001  네트워크가 막힌 환경에서도 지도는 만든다
+            status["osm"] = {"used": False, "reason": f"Overpass 접속 실패: {exc}"}
+            warnings.append("OSM 도로를 받지 못했습니다. 도로 접속(C5)은 경지정리 여부와 지적 도로 필지로만 판정합니다. 나중에 같은 명령을 다시 돌리면 채워집니다.")
+            _log(f"[OSM] 접속 실패, 건너뜀: {exc}")
+    else:
+        status["osm"] = {"used": False, "reason": "--no-osm"}
 
     vkey = http.key("VWORLD_KEY")
     if use_vworld and vkey:
@@ -184,19 +193,28 @@ def _round_coords(scn: dict, nd: int = 6) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description="공개 실측 자료로 후보단지 시뮬레이터용 읍면 지도를 만든다")
     ap.add_argument("--farmmap-shp", type=Path, required=True, help="팜맵 시군 SHP(.shp) 경로")
-    ap.add_argument("--bbox", required=True, help="경도최소,위도최소,경도최대,위도최대 (EPSG:4326)")
+    ap.add_argument("--bbox", help="경도최소,위도최소,경도최대,위도최대 (EPSG:4326)")
+    ap.add_argument("--addr", help="법정동 주소에 이 문자열이 든 필지로 범위를 정한다(예: 영순면). --bbox 대신 쓴다")
+    ap.add_argument("--addr-pad", type=float, default=300.0, help="--addr 범위를 넓힐 거리(m)")
     ap.add_argument("--name", required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--soil-budget", type=int, default=900, help="흙토람 API별 이번 실행 최대 신규 호출 수(개발계정 하루 1,000건)")
     ap.add_argument("--no-soil", action="store_true")
     ap.add_argument("--no-vworld", action="store_true")
+    ap.add_argument("--no-osm", action="store_true")
     a = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    bbox = tuple(float(v) for v in a.bbox.split(","))
-    if len(bbox) != 4 or bbox[0] >= bbox[2] or bbox[1] >= bbox[3]:
-        raise SystemExit("--bbox 형식: 경도최소,위도최소,경도최대,위도최대")
-    scn = build(a.farmmap_shp, bbox, a.name, a.soil_budget, not a.no_soil, not a.no_vworld)
+    if a.addr:
+        bbox, n_hit = farmmap.bbox_for_address(a.farmmap_shp, a.addr, a.addr_pad)
+        _log(f"[범위] 주소에 '{a.addr}'이(가) 든 필지 {n_hit}개 → bbox {','.join(str(v) for v in bbox)}")
+    elif a.bbox:
+        bbox = tuple(float(v) for v in a.bbox.split(","))
+        if len(bbox) != 4 or bbox[0] >= bbox[2] or bbox[1] >= bbox[3]:
+            raise SystemExit("--bbox 형식: 경도최소,위도최소,경도최대,위도최대")
+    else:
+        raise SystemExit("--bbox 또는 --addr 중 하나는 필요합니다")
+    scn = build(a.farmmap_shp, bbox, a.name, a.soil_budget, not a.no_soil, not a.no_vworld, not a.no_osm)
     _round_coords(scn)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(scn, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

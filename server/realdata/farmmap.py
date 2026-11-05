@@ -21,6 +21,23 @@ from .shapefile import PolygonShapefile, signed_area
 CLASS_MAP = {"논": ("답", "논"), "밭": ("전", "밭"), "과수": ("과", "과수"), "시설": ("전", "시설")}
 
 
+def bbox_for_address(shp_path: str | Path, needle: str, pad_m: float = 300.0) -> tuple[tuple[float, float, float, float], int]:
+    """법정동 주소(STDG_ADDR)에 needle(예: '영순면')이 들어가는 필지들의 경계상자(경위도)를 돌려준다.
+
+    읍면 하나를 통째로 자를 때 쓴다. pad_m만큼 넓혀 면 경계에 걸친 이웃 필지도 함께 들어가게 한다.
+    """
+    utmk = UTMK()
+    shp = PolygonShapefile(shp_path)
+    bb = shp.bboxes()
+    hit = [k for k, rec in enumerate(shp.records(range(shp.n))) if needle in (rec.get("STDG_ADDR") or "")]
+    if not hit:
+        raise SystemExit(f"주소에 '{needle}'이(가) 들어가는 팜맵 필지가 없습니다. SHP 시군을 확인해 주세요.")
+    sel = bb[hit]
+    lo = utmk.to_lonlat([[np.nanmin(sel[:, 0]) - pad_m, np.nanmin(sel[:, 1]) - pad_m]])[0]
+    hi = utmk.to_lonlat([[np.nanmax(sel[:, 2]) + pad_m, np.nanmax(sel[:, 3]) + pad_m]])[0]
+    return (round(float(lo[0]), 5), round(float(lo[1]), 5), round(float(hi[0]), 5), round(float(hi[1]), 5)), len(hit)
+
+
 def extract(shp_path: str | Path, bbox_lonlat: tuple[float, float, float, float]) -> tuple[list[dict], dict]:
     """bbox(경도·위도 최소, 최대) 안에 중심이 있는 팜맵 필지를 GeoJSON Feature 목록으로 돌려준다."""
     utmk = UTMK()
