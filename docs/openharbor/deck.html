@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>비즈니스톤_물개_빈필드시뮬레이터</title>
+<style>
+@page { size: 1280px 720px; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #fff; }
+body { font-family: 'Noto Sans KR', sans-serif; color: #1F2933; font-size: 14.5px; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.slide { width: 1280px; height: 720px; position: relative; overflow: hidden; padding: 44px 56px 46px 56px; page-break-after: always; break-after: page; background: #fff; }
+.slide:last-child { page-break-after: auto; }
+.kicker { font-size: 12px; letter-spacing: .12em; color: #2F8F5B; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+h1 { font-size: 27px; font-weight: 900; margin: 0 0 6px 0; line-height: 1.3; color: #11325A; letter-spacing: -0.01em; }
+.sub { font-size: 14px; color: #4B5563; margin-bottom: 16px; }
+.foot { position: absolute; left: 56px; right: 56px; bottom: 16px; font-size: 10.5px; color: #8A94A6; display: flex; justify-content: space-between; border-top: 1px solid #E5E9F0; padding-top: 6px; }
+.src { position: absolute; left: 56px; right: 56px; bottom: 36px; font-size: 10px; color: #6B7280; line-height: 1.4; }
+.row { display: flex; gap: 20px; }
+.col { flex: 1; min-width: 0; }
+.card { background: #F4F6F9; border-radius: 10px; padding: 14px 16px; }
+.card h3 { margin: 0 0 6px 0; font-size: 14.5px; color: #11325A; font-weight: 700; }
+.card p { margin: 0; font-size: 13.5px; }
+.navy { background: #11325A; color: #fff; }
+.navy h3 { color: #fff; }
+.green { background: #E7F4EC; }
+.yellow { background: #FFF6CC; }
+.red { background: #FBEAE7; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid #E5E9F0; padding: 7px 9px; text-align: left; vertical-align: top; }
+th { background: #11325A; color: #fff; font-weight: 700; font-size: 12px; }
+td.k { font-weight: 700; color: #11325A; white-space: nowrap; }
+.num { font-size: 30px; font-weight: 900; color: #11325A; line-height: 1.1; }
+.num small { font-size: 13px; font-weight: 500; color: #4B5563; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #E7F4EC; color: #2F8F5B; margin-right: 6px; }
+.tag.red { background: #FBEAE7; color: #C94A3B; }
+.tag.gray { background: #E5E9F0; color: #4B5563; }
+.quote { border-left: 4px solid #2F8F5B; padding: 9px 12px; background: #F4F6F9; border-radius: 0 8px 8px 0; font-size: 13.5px; margin-bottom: 10px; }
+.quote b { color: #11325A; }
+.quote .who { font-size: 11px; color: #6B7280; margin-top: 4px; }
+.arrow { display: flex; align-items: center; justify-content: center; font-size: 22px; color: #9AA3B2; padding: 0 4px; }
+.step { background: #F4F6F9; border-radius: 10px; padding: 10px 12px; font-size: 13px; text-align: center; flex: 1; }
+.step b { display: block; color: #11325A; font-size: 13px; }
+.step.hit { background: #11325A; color: #fff; }
+.step.hit b { color: #FFD54A; }
+img.shot { width: 100%; border-radius: 8px; border: 1px solid #E5E9F0; display: block; }
+.lose { background: #FFF6CC; }
+.win { background: #E7F4EC; font-weight: 700; }
+.fill { background: #FFF6CC; border: 1px dashed #D9A400; }
+ul { margin: 6px 0 0 18px; padding: 0; }
+li { margin-bottom: 4px; }
+.hl { background: linear-gradient(transparent 55%, #FFE98A 55%); }
+</style>
+</head>
+<body>
+
+<!-- 1. 표지 -->
+<section class="slide" style="background:#11325A;color:#fff;">
+  <div style="font-size:12px;letter-spacing:.12em;color:#9FD4B2;font-weight:700;">OPEN HARBOR 2026 · 비즈니스톤 · 1차 피드백 자료 · 2026. 11. 5</div>
+  <div class="row" style="margin-top:40px;align-items:flex-start;">
+    <div class="col" style="flex:1.15;">
+      <div style="font-size:16px;color:#C9D3E0;margin-bottom:8px;">팀 <b style="color:#fff;font-size:22px;">물개</b> <span style="font-size:13px;color:#9AA3B2;">· 포스텍 · 한동대 학생팀</span></div>
+      <div style="font-size:40px;font-weight:900;line-height:1.2;margin:10px 0 18px 0;">빈 필드 시뮬레이터</div>
+      <div style="font-size:17px;line-height:1.65;color:#E8EDF3;">
+        <span style="color:#FFD54A;font-weight:700;">공동영농 법인을 준비하는 경북 평야의 대표·사무장</span>이<br>
+        농가 한 곳의 거절로 생긴 <span style="color:#FFD54A;font-weight:700;">빈 필지</span> 때문에 지원 기준(20ha)과 평당 배당을<br>
+        다시 계산하지 못하는 문제를,<br>
+        공개 필지 데이터로 <span style="color:#FFD54A;font-weight:700;">대안 단지와 배당 변화를 1초 안에 보여 주는 웹 시뮬레이터</span>로 해결합니다.
+      </div>
+      <div style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;">
+        <span style="background:#2F8F5B;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;">현재 단계: MVP 개발 중</span>
+        <span style="background:#24476F;color:#fff;font-size:12px;padding:4px 10px;border-radius:999px;">형태: 웹(PC·태블릿) + 인쇄 설명 자료</span>
+        <span style="background:#24476F;color:#fff;font-size:12px;padding:4px 10px;border-radius:999px;">시제품: 포항 흥해 실측 2,666필지</span>
+      </div>
+    </div>
+    <div class="col" style="flex:1.15;">
+      <img class="shot" src="img/empty-field.png" alt="빈 필드 시뮬레이터 화면" style="border:none;">
+      <div style="font-size:11px;color:#9AA3B2;margin-top:6px;">시제품 화면 — 흥해 들녘 단지 6(23.2ha)에서 농가 3곳이 거절한 상황. 기준 미충족 판정과 1순위 대안(이웃 1 편입)이 맨 위에 뜬다.</div>
+    </div>
+  </div>
+  <div class="foot" style="color:#9AA3B2;border-color:#24476F;"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>1</span></div>
+</section>
+
+<!-- 2. 문제 -->
+<section class="slide">
+  <div class="kicker">02 문제</div>
+  <h1>농가 한 곳이 거절하면, 사무장은 2주를 감으로 보냅니다</h1>
+  <div class="sub">문제 문단은 가운데(우리가 만난 자리)부터 썼습니다. 큰 현상은 통계를 붙이고, 아이템은 그 뒤에 둡니다.</div>
+  <div class="row">
+    <div class="col" style="flex:1.05;">
+      <div class="card" style="margin-bottom:10px;">
+        <h3>큰 현상</h3>
+        <p>농가 인구 중 65세 이상이 <b>51.0%</b>(국가데이터처, 2025 농림어업총조사 확정, 2026.9), 경북 농가는 <b>59.2%</b>(동북지방통계청, 2024)입니다. 정부는 땅 주인은 그대로 두고 법인이 함께 짓는 공동영농을 <b>2030년 100개소</b>까지 늘리고, 20ha·농업인 5명 이상 법인에 <b>2년 최대 20억 원</b>을 줍니다(농식품부, 2026.3). 면적 기준을 50ha로 올리고 연접도를 보는 개선안이 <b>2026년 11월</b> 나옵니다(농식품부, 2026.8~9).</p>
+      </div>
+      <div class="card navy" style="margin-bottom:10px;">
+        <h3>우리가 만난 자리 · 2026.10.29 경주시청·상주시청 농정과 전화 인터뷰</h3>
+        <p style="color:#E8EDF3;">"구역을 정하고 신청서까지, 법인은 <b style="color:#FFD54A;">몇 개월</b>이 걸린다." "이미 선정된 법인은 도면이 지도에 다 만들어져 있고, 거절 단지가 생겨도 인근지로 넓히면 된다는 걸 안다. 필요한 쪽은 <b style="color:#FFD54A;">2028년 신청을 준비하는 예비 법인</b>이다." 문경·영덕 법인 대표는 농가를 설득하려고 설명회를 <b style="color:#FFD54A;">10회 이상</b> 열었다고 말했습니다(농민신문, 2025.1).</p>
+      </div>
+      <div class="card green">
+        <h3>문제 한 문장</h3>
+        <p>공동영농 법인을 준비하는 사무장은 농가 한 곳이 거절하면 ① 20ha를 지킬 수 있는지 ② 남은 조합원의 평당 배당이 얼마나 주는지 ③ 대신 어느 땅의 주인을 찾아가야 하는지를 <b>숫자 없이</b> 정하고, 설명회를 다시 엽니다.</p>
+      </div>
+    </div>
+    <div class="col">
+      <table>
+        <tr><th style="width:26%">문제의 크기</th><th>숫자</th><th style="width:34%">기준·출처</th></tr>
+        <tr><td class="k">설득 비용</td><td>설명회 10회 이상, 1~1.5년</td><td>문경·영덕 법인 대표 발언(농민신문 2025.1)</td></tr>
+        <tr><td class="k">1년 늦게 묶으면</td><td>20ha 단지 기준 약 <b>1억 4천만 원</b> 소득을 놓침</td><td>문경 늘봄 평당 2,350원→4,700원(경북매일 2024.9)으로 계산</td></tr>
+        <tr><td class="k">지원 자격</td><td>2년 최대 20억 원이 1년 뒤로 밀림</td><td>공모는 1년 단위(농식품부 2026.3)</td></tr>
+        <tr><td class="k">배당 설명</td><td>농가별 73만~1,800만 원, <b>24.7배</b> 격차</td><td>영덕 달산 2024 첫 배당(농민신문 2025.1)</td></tr>
+        <tr><td class="k">배당 근거</td><td>지구별 평당 1,500~4,000원, 산정 근거 공개된 적 없음</td><td>경북 배당 법인 10개소(경북매일 2026.3)</td></tr>
+        <tr><td class="k">수치 만들 사람</td><td>영농 디지털 기술을 안 쓰는 법인 <b>58.6%</b></td><td>2024년 조사(원문 재확인 중)</td></tr>
+      </table>
+      <div class="card yellow" style="margin-top:12px;">
+        <h3>왜 지금인가</h3>
+        <p>정부 민·관 협의체가 "농지 집적화"와 "소득 배분 기준"을 남은 과제로 꼽고 11월 개선안을 냅니다(2026.7.27). 경북 공동영농 지구는 2023년 2곳에서 2026년 29~31곳으로 늘었습니다(경북도). 예비 법인이 가장 많이 생기는 해가 2027년입니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>2</span></div>
+</section>
+
+<!-- 3. 솔루션 -->
+<section class="slide">
+  <div class="kicker">03 솔루션</div>
+  <h1>지도에서 거절한 농가를 누르면, 1초 안에 "빼고 갈지·메울지"가 나옵니다</h1>
+  <div class="sub">웹 시뮬레이터 두 화면과 인쇄 자료 한 장. 머신러닝이 아니라 공개 필지 데이터 위의 제약 최적화입니다.</div>
+  <div class="row">
+    <div class="col" style="flex:1.2;">
+      <img class="shot" src="img/empty-field-top.png" alt="빈 필드 시뮬레이터">
+      <div style="font-size:11.5px;color:#6B7280;margin-top:5px;">빈 필드 시뮬레이터 — 흥해 단지 6(23.2ha)에서 3농가 5.2ha가 빠지자 <b>18.1ha로 기준 미충족</b>. 법인 순수익 −22.7%, 남은 조합원 평당 배당은 −0.5%. 1순위 대안 "이웃 1 편입(+2.4ha)". 판정 0.01초.</div>
+      <div class="row" style="margin-top:8px;gap:10px;align-items:center;">
+        <div style="width:150px;flex:none;"><img class="shot" src="img/sites-map.png" alt="후보단지 시뮬레이터" style="height:120px;width:150px;object-fit:cover;"></div>
+        <div class="col" style="font-size:12px;color:#4B5563;">
+          <b style="color:#11325A;">후보단지 시뮬레이터(예비 법인용 앞 단계)</b><br>읍면 지도에서 면적·농가 수·도로 접속·경사·배수 조건을 만족하는 필지 묶음을 제안합니다. 흥해 2,666필지·489ha에서 후보 9곳·253ha를 <b>0.25초</b>에 찾습니다.
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card" style="margin-bottom:8px;">
+        <h3>① 기준 판정 + 대체 필지 추천</h3>
+        <p>거절 필지를 빼면 면적(20ha 현행 / 50ha 상향 검토)과 최소 농가 수 충족 여부를 즉시 판정합니다. 못 채우면 기준과 법인 목표 순수익을 함께 맞추는 이웃 필지 편입 후보를 순위로 보여 줍니다.</p>
+      </div>
+      <div class="card" style="margin-bottom:8px;">
+        <h3>② 평당 배당과 흉년 시나리오</h3>
+        <p>지급 방식(배당형·고정 임차료·혼합)별로 남은 조합원의 평당 배당을 범위로 보여 주고, 흉년이면 손해를 누가 지는지(배당형은 조합원, 임차료형은 법인) 첫 줄에 적습니다. 시뮬레이션 결과, 한 농가가 빠져 법인 순수익이 6% 줄어도 평당 배당은 약 1%만 줍니다. 땅과 배당받을 사람이 함께 빠지기 때문입니다.</p>
+      </div>
+      <div class="card" style="margin-bottom:8px;">
+        <h3>③ 설명 자료 만들기(인쇄)</h3>
+        <p>대표 보고용 한 장과 농가 설명용 큰 글자 한 장을 뽑습니다. 농어민 디지털 역량은 일반 국민의 72.4%, 고령층은 56.2%라(NIA 2025 디지털정보격차 실태조사) 조합원은 종이로 받습니다.</p>
+      </div>
+      <div class="card green">
+        <h3>어떻게 계산하나</h3>
+        <p>팜맵·흙토람·연속지적도(공개 데이터, 인증키 2개)로 필지 인접 그래프를 만들고, 연결성·면적·농가 수·도로·경사 제약 아래 묶음을 탐색합니다. 서버 없이 브라우저에서 계산합니다. 소유자는 비공개라 필지 수로 농가 수를 추정합니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>3</span></div>
+</section>
+
+<!-- 4. 인터뷰 → 타겟 전환 -->
+<section class="slide">
+  <div class="kicker">04 고객 · 인터뷰에서 배운 것</div>
+  <h1>인터뷰 2건이 고객을 바꿨습니다: 선정된 법인 → 설립을 준비하는 예비 법인</h1>
+  <div class="sub">2026.10.29 경주시청·상주시청 농정과 공동영농 담당자 전화 인터뷰. 법인 대표 소개는 "바빠서 어렵다"며 거절당했습니다.</div>
+  <div class="row">
+    <div class="col" style="flex:1;">
+      <div class="quote"><b>"선정된 법인은 도면이 지도에 다 만들어져 있다. 거절 단지가 생겨도 인근지로 확대하면 된다는 걸 안다."</b><div class="who">→ 선정 법인에게 우리 도구는 '이미 아는 것'. 지역 사정은 법인이 더 잘 압니다.</div></div>
+      <div class="quote"><b>"지금 필요한 건 사업을 신청하려는 쪽이다. 예를 들어 2028년을 준비하는 법인."</b><div class="who">→ 예비 법인은 구역·농가 수·배당 수치를 처음 만듭니다. 신청서에 면적·연접·참여 농가·배분 계획을 써야 합니다.</div></div>
+      <div class="quote"><b>"한창 작업 중이라 법인이 워낙 바빠 외부 연락은 끊고 있다. 연락처를 드리긴 힘들다."</b><div class="who">→ 인터뷰 자체가 이 시장의 병목입니다. 시군 담당자 소개 없이는 닿기 어렵습니다.</div></div>
+      <table style="margin-top:4px;">
+        <tr><th></th><th>인터뷰 전</th><th>인터뷰 후</th></tr>
+        <tr><td class="k">1순위 고객</td><td>선정 법인의 사무장·대표</td><td class="win">설립·신청을 준비하는 예비 법인 대표·사무장</td></tr>
+        <tr><td class="k">쓰는 때</td><td>거절 당일</td><td class="win">구역 구상 → 설득(거절) → 신청서 작성</td></tr>
+        <tr><td class="k">채널</td><td>법인 콜드콜</td><td class="win">시군 예비법인 교육·설명회, 농어촌공사 지사</td></tr>
+      </table>
+    </div>
+    <div class="col" style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#11325A;margin-bottom:6px;">예비 법인의 1년: 어디서 우리 도구를 쓰나</div>
+      <div style="display:flex;gap:6px;align-items:stretch;">
+        <div class="step"><b>교육 참석</b>강진군 2027 공모 대비 리더 교육 40여 명(2026.10)</div>
+        <div class="arrow">›</div>
+        <div class="step hit"><b>구역 구상</b>후보단지 시뮬레이터로 핵심 필지 1~2개 찾기</div>
+        <div class="arrow">›</div>
+        <div class="step hit"><b>설명회·거절</b>빈 필드 판정, 1순위 대안, 농가용 한 장</div>
+        <div class="arrow">›</div>
+        <div class="step hit"><b>신청서</b>면적·연접·농가 수·배분 계획 수치 표</div>
+        <div class="arrow">›</div>
+        <div class="step"><b>시군 추천·선정</b>2년 20억</div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>예비 법인을 밖에서 알아보는 신호</h3>
+        <ul style="font-size:12.5px;">
+          <li>시군·도의 공동영농 리더 교육, 예비사업자 교육 참석(2027 공모 대비 교육은 2026.10 시작)</li>
+          <li>확산사업 공모·추가공모 신청 이력(경북도 2026 추가공모 공지)</li>
+          <li>확장 계획 공표(경주 대청 65ha → 2030년 220ha, 경북매일 2025.12)</li>
+        </ul>
+      </div>
+      <div class="card red" style="margin-top:10px;">
+        <h3>아직 모르는 것</h3>
+        <p>예비 법인 본인 인터뷰는 0건입니다. "거절 뒤 재설계에 2주"는 아직 가설이고, 다음 2주 검증 대상입니다(8장).</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>4</span></div>
+</section>
+
+<!-- 5. 시장 -->
+<section class="slide">
+  <div class="kicker">05 시장</div>
+  <h1>1년 차에 닿을 고객은 경북의 예비 법인 10곳입니다</h1>
+  <div class="sub">조 단위 시장 대신, 누가 이 문제를 겪고 그중 우리가 연락할 수 있는 곳이 몇 곳인지로 내려왔습니다.</div>
+  <div class="row">
+    <div class="col" style="flex:1.05;">
+      <table>
+        <tr><th>층</th><th>정의</th><th>규모</th><th>근거</th></tr>
+        <tr><td class="k">정책 목표</td><td>공동영농법인 육성</td><td>2030년 100개소 · 경북 100개소·9천ha</td><td>농식품부 2026.3 · 경북도</td></tr>
+        <tr><td class="k">조직화 들녘</td><td>들녘경영체·공동경영체·공동영농 지구</td><td><b>500~700곳, 6만~10만ha</b></td><td>2015년 말 224개소·51,114ha 기준 추정</td></tr>
+        <tr><td class="k">2027~28 도달 가능</td><td>확산사업 누적 36 + 경북 31지구 + 예비사업자</td><td><b>연 100~200곳</b></td><td>2027 예산안, 경북도 공고</td></tr>
+        <tr class="win"><td class="k">1년 차 목표</td><td>경북 시군 예비법인 교육 참석 법인</td><td><b>10곳</b></td><td>경주·상주·구미·문경·의성</td></tr>
+      </table>
+      <div class="row" style="margin-top:12px;gap:10px;">
+        <div class="card col"><div class="num">2곳 → 29곳<br><small>경북 공동영농 지구, 2023 → 2026(경북도)</small></div></div>
+        <div class="card col"><div class="num">6 → 36<br><small>공동영농 확산 선정 법인 누적, 2026 → 2027(예산안)</small></div></div>
+      </div>
+      <div class="card yellow" style="margin-top:10px;">
+        <h3>1년 차 매출 감각</h3>
+        <p>10곳 × 설계 1회 2,000만 원 = <b>2억 원</b>(보조금 교육·컨설팅 비목을 거칠 때) / 구독만이면 10곳 × 연 100만 원 = 1,000만 원. 비목 인정 여부가 갈림길입니다(7장).</p>
+      </div>
+    </div>
+    <div class="col">
+      <table>
+        <tr><th></th><th>한국</th><th>일본</th><th>핀란드·덴마크</th></tr>
+        <tr><td class="k">필지 구조</td><td>필지당 0.13~0.18ha, 농가당 5~8필지(대리값)</td><td>집적률 62.1%, 2030년 KPI 70%</td><td>교환 설계를 공공이 수행</td></tr>
+        <tr><td class="k">돈 내는 주체</td><td>보조금 비목·시군(농가 직접 지불 약함)</td><td>국가 정액 보조, 시정촌 위탁</td><td>ha당 €1,000~1,300 / 3,500DKK 보조</td></tr>
+        <tr><td class="k">설계 도구</td><td>없음. 종이 지도와 감</td><td>농업위원회 지원 시스템(정보 관리까지)</td><td>측량 기관 전문가</td></tr>
+        <tr><td class="k">기준값</td><td>집적률·분산도 공표 임계값 없음</td><td>1ha 団地 비율이 보조금 요건</td><td>거리 단축 법정 요건</td></tr>
+      </table>
+      <div class="card" style="margin-top:12px;">
+        <h3>국내와 해외의 차이가 주는 뜻</h3>
+        <p>한국은 "얼마나 모였는가"를 재는 공식 지표가 없습니다. 흥해 실측처럼 공개 데이터로 읍면 지표를 먼저 계산해 공개하는 쪽이 기준값을 쓰게 됩니다. 11월 개선안에 집적화 지표가 들어가면 설계 수요가 제도가 됩니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="src">주의: 500~700곳·연 100~200곳은 공개 수치로 만든 추정치입니다. "5명·20ha 이상 벼 중심 법인" 수는 통계에 없습니다. 해외 숫자는 2차 자료가 섞여 있어 원문 확인 전입니다.</div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>5</span></div>
+</section>
+
+<!-- 6. 경쟁·차별성 -->
+<section class="slide">
+  <div class="kicker">06 경쟁 · 차별성</div>
+  <h1>같은 도구는 없지만 경쟁자는 있습니다. 법인 대표의 머릿속 지도입니다</h1>
+  <div class="sub">인터뷰에서 확인한 가장 흔한 대안은 "그냥 안다"입니다. 우리가 지는 줄도 그대로 두었습니다.</div>
+  <table>
+    <tr><th style="width:17%">비교 항목</th><th>대표의 현장 지식 + 종이 지도</th><th>시군·농어촌공사 컨설팅</th><th>팜맵·농업e지(공개 지도)</th><th>측량·경지정리 용역</th><th style="background:#2F8F5B;">빈 필드 시뮬레이터</th></tr>
+    <tr><td class="k">거절 뒤 대안까지</td><td>수일~2주(답사)</td><td>수주(일정 조율)</td><td>해당 없음(조회만)</td><td>수개월</td><td class="win">판정 1초, 당일 결정</td></tr>
+    <tr><td class="k">20/50ha·5명 기준 판정</td><td>암산</td><td>사람이 확인</td><td>없음</td><td>있음(유료)</td><td class="win">있음, 기준 바꿔 재계산</td></tr>
+    <tr><td class="k">평당 배당·흉년 시나리오</td><td>감으로 약속</td><td>일부</td><td>없음</td><td>없음</td><td class="win">방식별 범위 + 흉년</td></tr>
+    <tr><td class="k">농가에게 건넬 자료</td><td>말</td><td>보고서</td><td>없음</td><td>도면</td><td class="win">큰 글자 한 장 인쇄</td></tr>
+    <tr><td class="k">지역 사정(이장·친분·소유자)</td><td class="lose">가장 잘 앎</td><td class="lose">잘 앎</td><td>없음</td><td>없음</td><td class="lose">없음. 소유자 비공개라 필지 수로 추정</td></tr>
+    <tr><td class="k">신뢰</td><td class="lose">수십 년 관계</td><td class="lose">공공기관</td><td>공공</td><td>면허</td><td class="lose">학생팀, 실적 0</td></tr>
+    <tr><td class="k">비용</td><td>0원</td><td>개소당 3,000만, 보조 90%</td><td>무료</td><td>수천만 원</td><td>구독 연 100만/50ha 또는 설계비</td></tr>
+  </table>
+  <div class="row" style="margin-top:12px;">
+    <div class="card green col"><h3>우리만 하는 것 ①</h3><p>거절 당일에 숫자가 나옵니다. 기준·순수익·평당 배당·1순위 대안을 한 줄로.</p></div>
+    <div class="card green col"><h3>우리만 하는 것 ②</h3><p>공개 데이터만으로 읍면 전체(2,666필지)를 1초 안에 돌립니다. 법인 자료가 없어도 시작합니다.</p></div>
+    <div class="card green col"><h3>우리만 하는 것 ③</h3><p>결과가 그대로 신청서 수치 표와 농가 설명 자료가 됩니다. 한 번 계산으로 서류 셋.</p></div>
+    <div class="card red col"><h3>지는 곳을 메우는 방법</h3><p>지역 사정은 법인이 입력하고 우리는 계산합니다. 현장 동행(Get)으로 시작해 셀프 도구(Keep)로 넘깁니다.</p></div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>6</span></div>
+</section>
+
+<!-- 7. 수익 모델 -->
+<section class="slide">
+  <div class="kicker">07 수익 모델</div>
+  <h1>돈은 농가가 아니라 보조금 비목과 시군이 냅니다</h1>
+  <div class="sub">컨설팅 자부담이 30%에서 50%로 오르자 신청이 1,448건(2009)에서 203건(2016)으로 줄었습니다. 농가 직접 과금은 보조 수단으로만 둡니다.</div>
+  <div class="row">
+    <div class="col" style="flex:1.2;">
+      <table>
+        <tr><th>누가</th><th>왜 내나</th><th>얼마</th><th>가격 앵커</th></tr>
+        <tr><td class="k">① 법인이 쥔 보조금의 교육·컨설팅 비목</td><td>신청서·총회 자료가 설계 보고서로 나옴. 자부담 10%</td><td><b>설계 1회 2,000~3,000만 원</b></td><td>들녘경영체 교육·컨설팅 개소당 3,000만 원(전남 2024). 공동영농 확산 지원 범위에 교육·컨설팅 포함</td></tr>
+        <tr><td class="k">② 시군 농정과</td><td>예비 법인 발굴용 읍면 후보지 지도</td><td>읍면 3~10곳 <b>5,000만 원~</b></td><td>농촌공간계획 용역 4~4.6억 원(110여 시군)</td></tr>
+        <tr><td class="k">③ 법인 구독(사후 운영)</td><td>거절·변경 때마다 다시 계산</td><td>ha당 연 2만 원 <b>(50ha 연 100만 원)</b></td><td>미국 농업 SW 이용자 51%가 에이커당 연 $5 미만(Purdue 2019)</td></tr>
+      </table>
+      <div class="card yellow" style="margin-top:12px;">
+        <h3>확인해야 넘어가는 문턱</h3>
+        <p>공동영농 확산 시행지침 원문에서 교육·컨설팅 비목에 <b>설계 용역·소프트웨어</b>가 들어가는지 아직 확인하지 못했습니다. 안 되면 인증 컨설팅 업체와 하도급으로 시작합니다. 농지법 제7조의2(임대차 중개 금지) 때문에 서비스는 '설계·자문'이고 매물·수수료 기능은 넣지 않습니다.</p>
+      </div>
+    </div>
+    <div class="col">
+      <div style="font-size:13px;font-weight:700;color:#11325A;margin-bottom:8px;">가격은 원가와 대체재 사이 어디쯤인가 (50ha 단지 기준)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#D9DEE7;border-radius:8px;padding:10px 12px;"><b>천장 · 지금 대안에 드는 돈</b><br><span style="font-size:12.5px;">컨설팅 개소당 3,000만 원 / 설명회 10회·1~1.5년의 설득 비용</span></div>
+        <div style="background:#2F8F5B;color:#fff;border-radius:8px;padding:10px 12px;"><b>지켜 주는 돈 · 거절 1농가(1.8ha)를 메우면</b><br><span style="font-size:12.5px;">규모화 절감 연 약 320만 원 되찾음. 10a당 직접생산비 70세 이상 68.6만 원 → 5ha 이상 50.8만 원(국가데이터처 2025년산 논벼 생산비조사, 2026.3)</span></div>
+        <div style="background:#FFD54A;border-radius:8px;padding:10px 12px;"><b>우리 가격 · 구독 연 100만 원</b><br><span style="font-size:12.5px;">되찾는 320만 원의 약 1/3. 설계 1회 2,000~3,000만 원은 보조금 비목에서</span></div>
+        <div style="background:#11325A;color:#fff;border-radius:8px;padding:10px 12px;"><b>바닥 · 원가</b><br><span style="font-size:12.5px;">공공데이터 키 2개 무료, 서버 월 수만 원(브라우저 계산), 들녘별 현장 보정 인건비가 거의 전부</span></div>
+      </div>
+      <div style="font-size:11.5px;color:#6B7280;margin-top:8px;">2030년 100개소가 모두 50ha라면 구독 연 1억 원, 비목 설계가 연 10억 원 규모(가정). 금액은 인터뷰로 검증합니다.</div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>7</span></div>
+</section>
+
+<!-- 8. 성과·검증 계획 -->
+<section class="slide">
+  <div class="kicker">08 성과 · 검증 계획</div>
+  <h1>사용자 0명, 매출 0원. 대신 실측 시제품과 인터뷰 2건, 다음 2주 계획이 있습니다</h1>
+  <div class="sub">통과 기준은 결과를 보기 전에 적었습니다. 칭찬은 세지 않고 연락처·재방문·일정만 셉니다.</div>
+  <div class="row">
+    <div class="col" style="flex:0.95;">
+      <div class="card" style="margin-bottom:8px;"><h3>만든 것</h3><p>포항 흥해 실측 2,666필지·489ha 지도(팜맵·흙토람·연속지적도). 후보단지 9곳 0.25초, 빈 필드 판정 0.01초, 대표·농가용 설명 자료 인쇄. 소스는 깃허브 저장소에 있습니다.</p></div>
+      <div class="card" style="margin-bottom:8px;"><h3>만난 사람</h3><p>2026.10.29 경주시청·상주시청 농정과 공동영농 담당 2명(전화). 법인 대표 0명(소개 거절), 농어촌공사 0명.</p></div>
+      <div class="card" style="margin-bottom:8px;"><h3>발표</h3><p>2026.11.1 포스텍-한동대 Mini TeX-Corps 최종발표. 비즈니스 모델 캔버스와 경험만 묻는 인터뷰 질문지 작성.</p></div>
+      <div class="card red"><h3>없는 것</h3><p>실제 사용자, 매출, 계약·MOU, 실제 단지 경계로 한 정확도 검증(가상 읍면 F1만 있음, 성능 근거로 쓰지 않음).</p></div>
+    </div>
+    <div class="col" style="flex:1.3;">
+      <table>
+        <tr><th>다음 2주 (11.5~11.19)</th><th>목표</th><th>통과 기준</th><th>마감</th></tr>
+        <tr><td class="k">예비 법인·교육 참석 농가 인터뷰</td><td>5명</td><td>3명 이상이 "거절 뒤 재설계에 1주 이상 걸렸다"고 말함</td><td>11.12</td></tr>
+        <tr><td class="k">시군 예비법인 교육·설명회 일정 확보</td><td>경북 2곳</td><td>참관 또는 10분 소개를 허락한 곳 1곳</td><td>11.19</td></tr>
+        <tr><td class="k">농어촌공사 경주·상주지사 통화</td><td>1건</td><td>컨설팅 때 쓰는 기준표 유무와 임차료 수준 확인</td><td>11.12</td></tr>
+        <tr><td class="k">시제품 현장 시연</td><td>2곳</td><td>화면을 본 뒤 연락처를 남기거나 다음 약속을 잡은 곳 1곳</td><td>11.19</td></tr>
+        <tr><td class="k">수익 가설 확인</td><td>2명</td><td>"지난해 필지 정리·컨설팅에 얼마 썼고 누가 결재했나"에 금액이 나옴</td><td>11.19</td></tr>
+      </table>
+      <div class="card green" style="margin-top:12px;">
+        <h3>인터뷰에서 묻는 것(경험만)</h3>
+        <p>"마지막 거절 뒤 무엇부터 하셨나요?" "대체 땅을 정하기까지 며칠, 몇 번 답사하셨나요?" "남은 농가가 무엇을 물었나요?" "거절 때문에 지원사업에서 탈락한 적이 있나요?" "쓰시겠어요?"는 묻지 않습니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>8</span></div>
+</section>
+
+<!-- 9. 글로벌 -->
+<section class="slide">
+  <div class="kicker">09 글로벌 진출 전략</div>
+  <h1>첫 해외는 일본입니다. 같은 소필지·고령화 구조에 집적 KPI가 제도로 있습니다</h1>
+  <div class="sub">직접 판매가 아니라 시정촌·JA·수탁 기관에 '설계 계산 레이어'를 공급하는 방식입니다. 현지 인터뷰 0건, 가설 단계입니다.</div>
+  <div class="row">
+    <div class="col">
+      <div class="card" style="margin-bottom:10px;">
+        <h3>왜 일본인가</h3>
+        <ul style="font-size:12.5px;">
+          <li>농지 집적률 62.1%, 2030년 목표 70%. 1ha 이상 団地 비율과 団地당 면적이 보조금 요건으로 정해져 있어 결과를 숫자로 팔 수 있음</li>
+          <li>地域計画(지역계획)을 전 시정촌이 세워야 하고 국가가 정액 보조. 민간 위탁 사례 있음(山梨県 341만 엔)</li>
+          <li>농업위원회 지원 시스템은 농지 정보 관리까지만. 배치·교환 설계 계산은 비어 있음</li>
+          <li>평균 분산지수 0.80 같은 실측 기준값이 공개돼 있어 우리 지표를 바로 비교할 수 있음</li>
+        </ul>
+      </div>
+      <div class="card yellow">
+        <h3>현지 제약</h3>
+        <p>소유·경작자 데이터는 농업위원회가 쥐고 있고 개인정보 규제가 강함. 集落(마을) 단위 합의 관행, 일본 농지법, 일본어 UI와 현지 영업 인력. 위 수치는 2차 자료가 섞여 있어 원문 확인 전입니다.</p>
+      </div>
+    </div>
+    <div class="col">
+      <div style="display:flex;gap:6px;">
+        <div class="step"><b>2027</b>국내 경북 예비 법인 3곳 설계 레퍼런스, 설계 전후 KPI(블록 수·1ha 블록 비율·거점 거리) 공개</div>
+        <div class="arrow">›</div>
+        <div class="step"><b>2028</b>일본어 UI, eMAFF 農地ナビ 공개 필지 데이터로 시정촌 1곳 시범 계산</div>
+        <div class="arrow">›</div>
+        <div class="step hit"><b>2029</b>JA 또는 지역계획 수탁사 1곳과 화이트라벨·API 계약</div>
+      </div>
+      <table style="margin-top:12px;">
+        <tr><th>국가</th><th>진출 이유</th><th>방식</th><th>순서</th></tr>
+        <tr><td class="k">일본</td><td>같은 구조, KPI 제도화, 설계 계산 공백</td><td>수탁사·JA 파트너, 레이어 공급</td><td>1순위</td></tr>
+        <tr><td class="k">핀란드·덴마크</td><td>교환 설계에 ha당 보조(€1,000~1,300 / 3,500DKK)</td><td>공공 측량 기관 알고리즘 공급</td><td>2순위</td></tr>
+        <tr><td class="k">동남아</td><td>소필지 구조는 같으나 지적·공개 데이터 부족</td><td>보류</td><td>—</td></tr>
+      </table>
+      <div class="card green" style="margin-top:10px;">
+        <h3>국내에서 먼저 증명할 것</h3>
+        <p>해외에 가져갈 것은 화면이 아니라 "설계 전후 블록 수가 얼마나 줄었는가"라는 숫자입니다. 경북 실측 3곳의 전후 KPI가 그 증거입니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>9</span></div>
+</section>
+
+<!-- 10. 팀 -->
+<section class="slide">
+  <div class="kicker">10 팀</div>
+  <h1>2026년 8월에 이 문제를 만나, 10월에 실측 필지로 시제품을 만든 팀 물개</h1>
+  <div class="sub">경력 대신 "이 문제를 언제 만났고 지금 무엇을 하는지"를 적었습니다. 비어 있는 역할도 그대로 적었습니다.</div>
+  <div style="display:flex;gap:6px;margin-bottom:14px;">
+    <div class="step"><b>2026.8</b>주제 재정의: 흩어진 논밭을 어떻게 묶어야 공동영농이 되는가</div>
+    <div class="arrow">›</div>
+    <div class="step"><b>2026.9~10</b>흥해 실측 2,666필지 지도, 후보단지·빈 필드 시뮬레이터</div>
+    <div class="arrow">›</div>
+    <div class="step"><b>2026.10.29</b>경주·상주 시청 농정과 인터뷰, 타겟 전환</div>
+    <div class="arrow">›</div>
+    <div class="step"><b>2026.11.1</b>포스텍-한동대 Mini TeX-Corps 최종발표</div>
+    <div class="arrow">›</div>
+    <div class="step hit"><b>2026.11.5</b>OPEN HARBOR 1차 제출</div>
+  </div>
+  <div class="row" style="gap:12px;">
+    <div class="card fill col"><h3>팀원 1 · 이름·학과 (기입)</h3><p style="font-size:12.5px;"><b>역할(예시):</b> 기획·고객 인터뷰<br><b>지금 하는 일:</b> 시군·법인 인터뷰 섭외, 질문지</p></div>
+    <div class="card fill col"><h3>팀원 2 · 이름·학과 (기입)</h3><p style="font-size:12.5px;"><b>역할(예시):</b> 데이터·알고리즘<br><b>지금 하는 일:</b> 팜맵·흙토람 연동, 제약 최적화</p></div>
+    <div class="card fill col"><h3>팀원 3 · 이름·학과 (기입)</h3><p style="font-size:12.5px;"><b>역할(예시):</b> 웹 화면<br><b>지금 하는 일:</b> 빈 필드 화면, 설명 자료 인쇄</p></div>
+    <div class="card fill col"><h3>팀원 4 · 이름·학과 (기입)</h3><p style="font-size:12.5px;"><b>역할(예시):</b> 사업모델·발표<br><b>지금 하는 일:</b> 수익 근거, BMC, 공모 자료</p></div>
+  </div>
+  <div class="row" style="margin-top:14px;">
+    <div class="card red col"><h3>비어 있는 역할: 농업 현장 전문가</h3><p>공동영농 법인을 만들어 본 사람이 팀에 없습니다. 채울 방법: 시군 담당자 소개로 예비 법인 대표 1명 자문, 대구경북연구원 공동영농 교육 강사 인터뷰. 기한 11월 말.</p></div>
+    <div class="card col"><h3>이 팀이 할 수 있는 이유</h3><p>공개 데이터만으로 실제 읍면(흥해 2,666필지)을 돌리는 시제품을 두 달 안에 만들었고, 인터뷰 결과에 따라 고객을 바꿨습니다. 포스텍·한동대의 데이터·컴퓨팅 수업과 창업 과정(Mini TeX-Corps)을 함께 거쳤습니다.</p></div>
+  </div>
+  <div class="src">※ 노란 칸은 제출 전 팀원 이름·학과·실제 역할로 바꿔 주세요. 팀원 사진을 넣으면 좋습니다.</div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>10</span></div>
+</section>
+
+<!-- 11. 요청 사항 -->
+<section class="slide">
+  <div class="kicker">11 요청 사항</div>
+  <h1>돈보다 먼저, 인터뷰할 사람 다섯 명을 소개해 주세요</h1>
+  <div class="sub">이 시장은 인터뷰가 가장 어렵고 가장 필요합니다. 법인은 바쁘고, 학생팀의 전화는 끊깁니다. 소개 한 번이 가장 큰 투자입니다.</div>
+  <div class="row">
+    <div class="col" style="flex:1.2;">
+      <table>
+        <tr><th style="width:24%">요청</th><th>구체적으로</th><th style="width:28%">우리가 들고 갈 것</th></tr>
+        <tr class="win"><td class="k">① 인터뷰 연결</td><td>공동영농을 준비 중인 예비 법인 대표·사무장 3명, 시군 농정과(포항·구미·문경 중) 1명, 농어촌공사 경북본부 1명</td><td>흥해 실측 시제품 시연, 10분 질문지(경험만 묻는 질문), 결과 공유</td></tr>
+        <tr><td class="k">② 채널 접근</td><td>경북도·시군의 공동영농 리더 교육, 예비사업자 교육, 설명회에 참관 또는 10분 소개 기회</td><td>농가용 설명 자료 한 장 샘플</td></tr>
+        <tr><td class="k">③ 멘토링</td><td>보조금 교육·컨설팅 비목으로 설계·소프트웨어 비용을 받는 구조(시행지침 해석), 농지법 중개 금지와 '설계·자문'의 선</td><td>수익 흐름 근거 문서</td></tr>
+        <tr><td class="k">④ 공모전·학술대회 추천</td><td>기술(공간 데이터·제약 최적화) 또는 지역(경북 농업대전환) 성격에 맞는 공모전, 학술대회 추천</td><td>알고리즘·실험 설계 문서</td></tr>
+        <tr><td class="k">⑤ 돈을 쓴다면</td><td>투자 요청은 없습니다. 소액(300만 원)이면 흙토람 전수 조회, 현장 교통비, 시연용 태블릿</td><td>지출 내역 공개</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <div class="card navy" style="margin-bottom:10px;">
+        <h3>다음 목표 시점</h3>
+        <p style="color:#E8EDF3;"><b style="color:#FFD54A;">11.12 데모데이</b>까지 인터뷰 5건과 시연 2곳.<br><b style="color:#FFD54A;">2027.3 공모(2027년 선정)</b> 전에 경북 예비 법인 3곳 무료 설계, 설계 전후 KPI 공개.<br><b style="color:#FFD54A;">2027 하반기</b> 보조금 비목 또는 시군 용역으로 첫 유료 계약 1건.</p>
+      </div>
+      <div class="card">
+        <h3>가장 확신이 없는 것</h3>
+        <p>예비 법인이 우리 도구를 '지금' 필요로 하는지, 그리고 예비 법인을 어디서 만나는지입니다. 시군 담당자 두 분의 말로 방향을 바꿨지만, 예비 법인 본인의 말은 아직 한 마디도 듣지 못했습니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>11</span></div>
+</section>
+
+<!-- 12. 부록: 공통 질문지 + 출처 -->
+<section class="slide">
+  <div class="kicker">부록</div>
+  <h1>공통 질문지 답변과 숫자 출처</h1>
+  <div class="row">
+    <div class="col" style="flex:1.15;">
+      <div class="card" style="margin-bottom:8px;">
+        <h3>준비 과정에서 고민한 점</h3>
+        <ol style="margin:4px 0 0 18px;padding:0;font-size:12.5px;">
+          <li>시군 담당자 인터뷰 뒤 고객을 '선정 법인'에서 '설립·신청을 준비하는 예비 법인'으로 바꿨습니다. 예비 법인은 아직 조직과 예산이 없어 찾기도, 돈을 받기도 어렵습니다. 이 전환이 맞는지, 예비 법인을 어디서 어떻게 만나야 하는지 고민입니다.</li>
+          <li>법인이 바빠 시군 담당자가 소개를 거절했습니다. 학생팀이 공동영농 법인 대표를 만나려면 어떤 경로가 현실적인지 고민입니다(교육·세미나 채널을 생각하고 있습니다).</li>
+          <li>농가·법인이 직접 돈을 내기 어려워 보조금 교육·컨설팅 비목과 시군 용역(B2G)을 수익원으로 잡았습니다. 학생팀이 B2G로 시작할 수 있는지, 구독과 설계 용역 중 무엇을 앞세울지 고민입니다.</li>
+        </ol>
+      </div>
+      <div class="card green" style="margin-bottom:8px;">
+        <h3>가장 피드백 받고 싶은 부분</h3>
+        <p>"예비 공동영농 법인"을 1순위 고객으로 잡은 것이 타당한지, 그리고 시군·도의 예비법인 교육·설명회를 첫 채널로 쓰는 방법이 현실적인지입니다.</p>
+      </div>
+      <div class="card"><h3>현재 단계</h3><p>MVP 개발 중 — 흥해 실측 필지로 만든 시제품은 있으나 실제 사용자는 없습니다.</p></div>
+    </div>
+    <div class="col" style="font-size:10.5px;color:#4B5563;line-height:1.45;">
+      <b style="color:#11325A;font-size:12px;">숫자 출처</b>
+      <ul style="margin:4px 0 0 14px;">
+        <li>국가데이터처, 2025 농림어업총조사 확정 결과(2026.9) · 2025년산 논벼 생산비조사(2026.3.27)</li>
+        <li>동북지방통계청, 최근 10년 경북 농업 변화(2025.12)</li>
+        <li>농식품부, 공동영농 확산 지원 시범사업 6개소 선정(2026.3) · 민관 협의체 출범(2026.7.27) · 차관 현장 점검, 면적 기준 상향 검토(2026.8.28) · 장관 구미 샘물영농조합 방문(2026.9.3)</li>
+        <li>경북도·경북매일, 공동영농 지구 21→29~31곳, 배당 법인 10개소(2026.3.17), 대청 확장 계획(2025.12.10), 문경 늘봄 배당(2024.9.6)</li>
+        <li>농민신문, 영덕 달산 첫 배당·설명회 10여 차례(2025.1.13)</li>
+        <li>과기정통부·NIA, 2025 디지털정보격차 실태조사(2026.3)</li>
+        <li>메트로신문, 전남 식량작물공동경영체 교육·컨설팅 개소당 3천만 원(2024)</li>
+        <li>Purdue University, Farmer use of ag data software(2019)</li>
+        <li>외교저널, 강진군 2027 공모 대비 공동영농 리더 교육(2026.10)</li>
+        <li>KREI 2016 들녘경영체 조사, 2015년 말 224개소·51,114ha · 농업법인 조사(2025)</li>
+        <li>경주시청·상주시청 농정과 공동영농 담당 전화 인터뷰(2026.10.29, 팀 기록)</li>
+        <li>일본·유럽 수치: 농림수산성 집적률, 地域計画 제도, 핀란드·덴마크 교환 보조 — 2차 자료, 원문 확인 전</li>
+      </ul>
+      <div style="margin-top:8px;color:#6B7280;">계산값(1억 4천만 원, 320만 원, 500~700곳 등)은 위 공개 수치로 팀이 산출한 추정치입니다. 가상 읍면 정확도(F1)는 성능 근거로 쓰지 않았습니다.</div>
+    </div>
+  </div>
+  <div class="foot"><span>팀 물개 · 빈 필드 시뮬레이터 · OPEN HARBOR 2026 1차 제출</span><span>12</span></div>
+</section>
+
+</body>
+</html>
