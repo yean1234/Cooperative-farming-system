@@ -23,19 +23,25 @@
       <li data-stage="1">② 구멍 · 기준 충족</li>
       <li data-stage="2">③ 구멍 · 기준 미충족</li>
     </ol>
-    <button type="button" class="btn ghost" id="btnReset">처음 상태로</button>
+    <div class="top-actions">
+      <button type="button" class="btn ghost" id="btnReset">처음 상태로</button>
+      <button type="button" class="btn primary" id="btnSheet">설명 자료 만들기</button>
+    </div>
   </header>
 
   <details class="toggle howto">
-    <summary>사용 방법 — 지도에서 참여 농가를 누르면 '거절'로 바뀌고, 오른쪽 대안이 바로 다시 계산됩니다</summary>
+    <summary>사용 방법 — 지도에서 거절한 농가를 누르면, 빼고 갈지 메울지를 맨 위에서 바로 알려 줍니다</summary>
     <ol class="steps">
-      <li><b>목표를 정합니다.</b> 왼쪽에서 법인의 목표 순수익, 지원 면적 기준(20ha 또는 50ha), 지급 방식을 고릅니다.</li>
-      <li><b>거절 농가를 누릅니다.</b> 지도에서 초록 필지를 누르면 그 농가의 필지가 모두 빠집니다(거절은 보통 농가 단위로 일어나므로). 한 칸만 빼 보고 싶으면 지도 위 "해제 단위"를 <b>필지 한 칸</b>으로 바꿉니다. 다시 누르면 돌아옵니다.</li>
-      <li><b>상황을 확인합니다.</b> 위의 ①②③ 표시가 지금 상황을 알려 줍니다.</li>
-      <li><b>대안을 고릅니다.</b> 오른쪽 1번 탭 표에서 대안을 누르면 지도에 편입 땅과 트랙터 경로가 겹쳐 보입니다.</li>
-      <li><b>배당금을 봅니다.</b> 3번 탭에서 농가별 배당금과 흉년 때 금액을 확인합니다.</li>
+      <li><b>거절 농가를 누릅니다.</b> 지도에서 초록 필지를 누르면 그 농가의 필지가 모두 빠집니다(거절은 보통 농가 단위로 일어나므로). 한 칸만 빼 보고 싶으면 지도 위 "해제 단위"를 <b>필지 한 칸</b>으로 바꿉니다. 다시 누르거나 왼쪽 "거절 기록"에서 복구합니다.</li>
+      <li><b>맨 위 결론을 봅니다.</b> 빼고 가도 되는지, 법인 순수익과 남은 조합원 평당 배당이 얼마나 바뀌는지, 1순위 대안이 무엇인지 한 줄로 나옵니다.</li>
+      <li><b>대안을 비교합니다.</b> 오른쪽 1번 탭 표에서 대안을 누르면 지도에 편입 땅과 트랙터 경로가 겹쳐 보입니다.</li>
+      <li><b>설명 자료를 뽑습니다.</b> 오른쪽 위 <b>설명 자료 만들기</b>로 대표 보고용 한 장, 남은 농가 설명용 한 장을 인쇄합니다.</li>
+      <li><b>조건을 맞춥니다.</b> 목표 순수익, 지원 면적 기준(20ha 현행 · 50ha 상향 검토), 지급 방식은 왼쪽에서 바꿉니다.</li>
     </ol>
   </details>
+
+  <!-- 결론: 사무장이 거절 당일 가장 먼저 묻는 "빼고 가도 되나, 메워야 하나" -->
+  <section class="decide" id="decide" aria-live="polite" aria-label="거절 영향 결론"></section>
 
   <main class="layout">
     <!-- 왼쪽: 목표와 판정 -->
@@ -49,7 +55,7 @@
         <div class="field">지원 면적 기준
           <div class="seg" id="segArea" role="radiogroup" aria-label="지원 면적 기준">
             <button type="button" data-v="20" aria-pressed="true">20ha 현행</button>
-            <button type="button" data-v="50" aria-pressed="false">50ha 개선안</button>
+            <button type="button" data-v="50" aria-pressed="false">50ha 상향 검토</button>
           </div>
         </div>
         <label class="field">최소 참여 농가 (명)
@@ -63,6 +69,11 @@
           </div>
         </div>
         <p class="recalc" id="recalc" aria-live="polite">조건을 바꾸면 바로 다시 계산됩니다</p>
+      </section>
+
+      <section class="card">
+        <h2>거절 기록 <span class="muted" id="refusedCount"></span></h2>
+        <ul class="refused" id="refused"></ul>
       </section>
 
       <section class="card" aria-live="polite">
@@ -117,7 +128,6 @@
         <button type="button" role="tab" id="tab2" aria-controls="pane2" aria-selected="false">2 기계비 · 경로</button>
         <button type="button" role="tab" id="tab3" aria-controls="pane3" aria-selected="false">3 배당금 · 흉년</button>
       </div>
-      <div class="banner" id="banner" aria-live="polite"></div>
 
       <div class="pane" id="pane1" role="tabpanel" aria-labelledby="tab1">
         <div id="optTable"></div>
@@ -172,6 +182,7 @@
       <ul class="list">
         <li>국가데이터처, 「2025년산 논벼(쌀) 생산비조사 결과」(2026.3.27): 10a당 총수입 2020~2025년산 1,152,894~1,348,651원, 5ha 이상 농가 직접생산비 508천원, 토지용역비 280,283원</li>
         <li>농림축산식품부 「공동영농 확산 지원사업」: 농업인 5명 이상·경작 면적 20ha 이상 농업법인, 개소당 2년 최대 20억 원 (2026년 시범, 2027년 누적 36개소로 확대 계획)</li>
+        <li>농림축산식품부 공동영농 확산 민·관 협의체(2026.7.27): 농지 집적화·품목 구성·소득 배분·사업 운영 개선안을 11월까지 마련. 면적 기준 상향(20ha→50ha)과 벼 포함을 검토 중</li>
         <li>참고 사례: 의성 화성영농조합법인 배당 3.3㎡당 2,000원 (경상북도 발표 인용 보도)</li>
         <li>지도: 팜맵 필지 경계·논밭 구분, 흙토람 토양·배수, OpenStreetMap 도로로 만든 포항 흥해 들녘 실측 지도(2,666필지). 후보단지 시뮬레이터가 고른 단지 6과 주변 260m 안의 필지를 씁니다.</li>
         <li>추정 소유자의 농가 규모 1.8ha: 위천친환경영농조합법인(2026 공동영농 확산 지원사업 선정) 30ha·17농가 보도</li>
@@ -189,6 +200,22 @@
       </ul>
     </details>
   </footer>
+
+  <!-- 설명 자료: 대표(결정권자) 보고용과 남은 농가 설명용 한 장 -->
+  <dialog class="sheet-dlg" id="sheetDlg" aria-labelledby="sheetTitle">
+    <div class="dlg-head">
+      <h2 id="sheetTitle">설명 자료</h2>
+      <div class="seg" id="segSheet" role="radiogroup" aria-label="자료 종류">
+        <button type="button" data-v="boss" aria-pressed="true">대표 보고용</button>
+        <button type="button" data-v="farm" aria-pressed="false">농가 설명용</button>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn primary" id="btnPrint">인쇄</button>
+        <button type="button" class="btn" id="btnClose">닫기</button>
+      </div>
+    </div>
+    <article class="sheet" id="sheet"></article>
+  </dialog>
 
   <script src="data/empty-field-heunghae.js"></script>
   <script src="empty-field.js"></script>

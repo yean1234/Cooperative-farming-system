@@ -193,6 +193,7 @@ function el(tag, attrs = {}, parent) { const e = document.createElementNS(SVGNS,
 
 // ---------------------------------------------------------------- 메인 계산·그리기
 function recompute() {
+  const t0 = performance.now();
   CENTER = null;
   const full = evaluate(new Set(memberParcels()));
   if (S.target === null) {
@@ -206,12 +207,13 @@ function recompute() {
   const stage = !S.off.size ? 0 : keep.meets ? 1 : 2;
   if (!ranked.some((o) => o.key === S.sel)) S.sel = (ranked.find((o) => o.rank === 1) || ranked[0]).key;
   const sel = ranked.find((o) => o.key === S.sel);
-  VIEW = { ranked, sel, stage, holes, candFarms: candFarms || [], keep, full };
-  renderStepper(); renderBanner(); renderJudge(); renderMap(); renderOptions(); renderMachine(); renderPayout();
+  VIEW = { ranked, sel, stage, holes, candFarms: candFarms || [], keep, full, ms: performance.now() - t0 };
+  renderStepper(); renderDecide(); renderRefused(); renderJudge(); renderMap(); renderOptions(); renderMachine(); renderPayout();
+  if ($("sheetDlg").open) renderSheet();
 }
 // 조건을 바꿨을 때 다시 계산된 영역을 잠깐 강조해, 바뀐 것을 눈으로 알 수 있게 한다
 function flash(note) {
-  ["banner", "judge", "optTable", "machine", "payout"].forEach((id) => {
+  ["decide", "judge", "optTable", "machine", "payout"].forEach((id) => {
     const n = $(id); if (!n) return;
     n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash");
   });
@@ -226,19 +228,76 @@ function renderStepper() {
   });
 }
 
-function renderBanner() {
-  const b = $("banner"), { stage, keep, holes } = VIEW;
-  const holeHa = areaOf(holes);
-  const who = `${refusedFarms().size}농가 ${holes.length}필지 · ${ha(holeHa)}`;
-  b.className = `banner s${stage}`;
-  const gap = keep.ev.net.mid - VIEW.full.net.mid;
-  const netLine = `법인 순수익 ${krw(keep.ev.net.mid)} (전원 참여 대비 ${gap >= 0 ? "+" : "−"}${krw(Math.abs(gap))})`;
-  const goal = keep.ev.net.mid >= S.target ? `목표 순수익 ${krw(S.target)} 달성` : `목표 순수익 ${krw(S.target)}에 ${krw(S.target - keep.ev.net.mid)} 모자람`;
-  if (stage === 0) {
-    const crit = keep.meets ? `지원 기준 충족 · ${goal}` : `<span class="fail">전원 참여해도 지원 기준 미충족: ${esc(keep.why)}</span>`;
-    b.innerHTML = `<b>① 기본 필지화 · 전원 참여</b>참여 농가 ${keep.ev.farms}곳, ${ha(keep.ev.area)}, 법인 순수익 ${krw(keep.ev.net.mid)}. ${crit}. 이 결과가 모든 비교의 기준선입니다. 지도에서 참여 농가를 눌러 거절을 시험해 보세요.`;
-  } else if (stage === 1) b.innerHTML = `<b>② 구멍이 났지만 지원 기준 충족</b>거절 ${who}가 빠져도 ${ha(keep.ev.area)}로 기준(${S.areaMin}ha)을 넘습니다. 그대로 가면 ${netLine}, ${goal}. 아래에서 순수익을 되찾는 대안과 비교하세요.`;
-  else b.innerHTML = `<b>③ 구멍 때문에 지원 기준 미충족</b>거절 ${who}가 빠져 ${esc(keep.why)}. 그대로 가면 ${netLine}. 땅 추가가 들어간 대안만 기준을 넘깁니다.`;
+// 결론: 거절 당일 사무장이 먼저 묻는 세 가지(지원 기준 유지 · 순수익과 배당 영향 · 다음 할 일)를 맨 위에 둔다
+const pct = (a, b) => (b ? (a / b - 1) * 100 : 0);
+const signPct = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%`;
+const STAGE = ["① 기본 필지화", "② 구멍 · 기준 충족", "③ 구멍 · 기준 미충족"];
+function renderDecide() {
+  const { stage, keep, holes, full, ranked } = VIEW, e = keep.ev;
+  const best = ranked.find((o) => o.rank === 1);
+  const goalGap = S.target - e.net.mid;
+  const head = stage === 0
+    ? (keep.meets ? "지도에서 거절한 농가를 누르면, 빼고 갈지 메울지 바로 판정합니다" : `전원 참여해도 지원 기준에 못 미칩니다 (${esc(keep.why)})`)
+    : stage === 1
+      ? (goalGap > 0 ? `빼고 가도 지원 기준은 지킵니다. 다만 목표 순수익에 ${krw(goalGap)} 모자랍니다` : "빼고 가도 됩니다. 지원 기준과 목표 순수익을 모두 지킵니다")
+      : `메워야 합니다. 그대로면 ${esc(keep.why)}으로 지원 대상에서 빠집니다`;
+  const sec = `판정 ${Math.max(0.01, VIEW.ms / 1000).toFixed(2)}초`;
+  const sub = stage === 0
+    ? `참여 ${e.farms}농가 · ${ha(e.area)} · 이 상태가 모든 비교의 기준선입니다 · ${sec}`
+    : `거절 ${refusedFarms().size}농가 · ${holes.length}필지 · ${ha(areaOf(holes))} 빠짐 · ${sec}`;
+  const areaOk = e.area + 1e-9 >= S.areaMin, farmOk = e.farms >= S.farmMin;
+  const dNet = pct(e.net.mid, full.net.mid), dPer = pct(e.per.mid, full.per.mid);
+  const perNote = stage === 0 ? "면적대로 나눈 연 배당 · 농가 설득용"
+    : Math.abs(dPer) < 2 ? `전원 참여 대비 ${signPct(dPer)} · 땅과 받을 사람이 함께 빠져 거의 그대로`
+      : `전원 참여 대비 ${signPct(dPer)}`;
+  let next;
+  if (stage === 0) next = `<div class="n sm">거절이 나오면 여기에 1순위 대안이 뜹니다</div>`;
+  else if (!best) next = `<div class="n sm fail">기준을 넘는 대안이 없습니다</div><div class="d">주변 농가를 더 설득하거나 지원 기준을 다시 확인하세요</div>`;
+  else if (best.key === "keep") next = `<div class="n sm">그대로 진행 ${chip(best.v)}</div><div class="d">추가로 설득할 농가가 없습니다</div>`;
+  else next = `<div class="n sm">1순위 ${esc(best.name)} ${chip(best.v)}</div><div class="d">${esc(best.sub)} · 설득 ${best.persuade}농가</div>
+      <button type="button" class="btn small" data-pick="${esc(best.key)}">지도에서 보기</button>`;
+  const d = $("decide");
+  d.className = `decide s${stage}`;
+  d.innerHTML = `
+    <div class="verdict">
+      <span class="stage-tag">${STAGE[stage]}</span>
+      <p class="headline">${head}</p>
+      <p class="d">${sub}</p>
+    </div>
+    <div class="tiles">
+      <div class="tile ${areaOk && farmOk ? "ok" : "no"}">
+        <div class="k">지원 기준${stage ? " · 그대로 갈 때" : ""}</div>
+        <div class="n">${areaOk && farmOk ? "충족 ✓" : "미충족 ✗"}</div>
+        <div class="d"><span class="${areaOk ? "pass" : "fail"}">면적 ${ha(e.area)} / ${S.areaMin}ha</span> · <span class="${farmOk ? "pass" : "fail"}">농가 ${e.farms} / ${S.farmMin}명</span></div>
+      </div>
+      <div class="tile">
+        <div class="k">법인 순수익 (연)${stage ? " · 그대로 갈 때" : ""}</div>
+        <div class="n">${krw(e.net.mid)}</div>
+        <div class="d ${stage && dNet < 0 ? "fail" : ""}">${stage ? `전원 참여 대비 ${signPct(dNet)}` : `범위 ${eokS(e.net.lo)}~${eokS(e.net.hi)}원`}</div>
+      </div>
+      <div class="tile">
+        <div class="k">남은 조합원 평당 배당 (연)</div>
+        <div class="n">${won(e.per.mid)}</div>
+        <div class="d">${perNote}</div>
+      </div>
+      <div class="tile next">
+        <div class="k">다음 할 일</div>
+        ${next}
+      </div>
+    </div>`;
+}
+
+function renderRefused() {
+  // S.off는 넣은 순서를 지키므로 거절한 순서대로 보인다
+  const list = [...refusedFarms()].map((f) => {
+    const farm = F.farms.get(f), off = farm.parcels.filter((id) => S.off.has(id));
+    return { f, n: off.length, total: farm.parcels.length, area: areaOf(off) };
+  });
+  $("refusedCount").textContent = list.length ? `· ${list.length}농가 ${ha(list.reduce((s, r) => s + r.area, 0))}` : "";
+  $("refused").innerHTML = list.length
+    ? list.map((r) => `<li><span><b>${esc(r.f)}</b> ${ha(r.area)}<span class="sub">${r.n === r.total ? `필지 ${r.n}개 전체` : `필지 ${r.total}개 중 ${r.n}개`}</span></span>
+        <button type="button" class="btn small" data-restore="${esc(r.f)}" aria-label="${esc(r.f)} 참여로 복구">복구</button></li>`).join("")
+    : `<li class="empty">아직 거절한 농가가 없습니다. 지도에서 초록 필지를 누르세요.</li>`;
 }
 
 function renderJudge() {
@@ -318,7 +377,7 @@ function renderMap() {
 
   const e = sel.ev;
   const dKm = (e.routeKm - VIEW.full.routeKm) * P.OPS;
-  $("mapNote").innerHTML = `선택한 안: <b>${esc(sel.name)}</b> · ${ha(e.area)} · 블록 ${e.blocks}개 · 트랙터 이동 연 ${(e.routeKm * P.OPS).toFixed(1)}km <span class="muted">(전원 참여 대비 ${dKm >= 0 ? "+" : "−"}${Math.abs(dKm).toFixed(1)}km)</span>`;
+  $("mapNote").innerHTML = `<span class="stage-tag s${VIEW.stage}">${STAGE[VIEW.stage]}</span> 선택한 안: <b>${esc(sel.name)}</b> · ${ha(e.area)} · 블록 ${e.blocks}개 · 트랙터 이동 연 ${(e.routeKm * P.OPS).toFixed(1)}km <span class="muted">(전원 참여 대비 ${dKm >= 0 ? "+" : "−"}${Math.abs(dKm).toFixed(1)}km)</span>`;
 }
 
 const SHOW = 5;
@@ -374,12 +433,24 @@ function payFor(perPy) {
     mix: { member: P.RENT_PY + P.BONUS * Math.max(0, perPy - P.RENT_PY), coop: perPy - (P.RENT_PY + P.BONUS * Math.max(0, perPy - P.RENT_PY)) },
   };
 }
+// 평당 금액: p0 평년 기준값, p1 흉년(S.shock), pLo·pHi 6년 최저·최고
+function payoutNums(e) {
+  const s = S.shock / 100;
+  const perShock = (e.area * (P.REV.mid * (1 - s) - P.COST) * 1e4 - e.machineWon) / (e.area * P.PY_PER_HA);
+  return { p0: payFor(e.per.mid), p1: payFor(perShock), pLo: payFor(e.per.lo), pHi: payFor(e.per.hi) };
+}
+const PAY_NAMES = { div: "배당형", rent: "고정 임차료", mix: "혼합" };
+// 흉년 손실을 누가 지는지 (배당형은 조합원, 고정 임차료형은 법인)
+function shockSentence(e, p0, p1) {
+  if (!S.shock) return "작황을 낮추면 흉년 손실을 누가 지는지 보입니다.";
+  const coop = p1.rent.coop * e.pyeong;
+  return `흉년(−${S.shock}%)이면 <b>배당형</b>은 조합원이 평당 ${won(p0.div.member - p1.div.member)} 덜 받습니다. <b>고정 임차료형</b>은 조합원 몫은 그대로이고, 법인 유보가 연 ${coop >= 0 ? `${krw(coop)} 남습니다` : `${krw(-coop)} 적자입니다`}.`;
+}
 function renderPayout() {
-  const e = VIEW.sel.ev, s = S.shock / 100;
-  $("shockVal").textContent = s ? `평년 대비 −${S.shock}%` : "평년";
-  const perShock = (area) => (area * (P.REV.mid * (1 - s) - P.COST) * 1e4 - e.machineWon) / (area * P.PY_PER_HA);
-  const p0 = payFor(e.per.mid), p1 = payFor(perShock(e.area)), pLo = payFor(e.per.lo), pHi = payFor(e.per.hi);
-  const names = { div: "배당형", rent: "고정 임차료", mix: "혼합" };
+  const e = VIEW.sel.ev;
+  $("shockVal").textContent = S.shock ? `평년 대비 −${S.shock}%` : "평년";
+  const { p0, p1, pLo, pHi } = payoutNums(e);
+  const names = PAY_NAMES;
   const row = (k) => `<tr ${k === S.pay ? 'class="sel"' : ""}><td>${names[k]}</td>
       <td><b>${won(p0[k].member)}</b><span class="sub">${Math.round(pLo[k].member) === Math.round(pHi[k].member) ? "고정" : `${Math.round(pLo[k].member).toLocaleString("ko-KR")}~${Math.round(pHi[k].member).toLocaleString("ko-KR")}`}</span></td>
       <td class="${p1[k].member < p0[k].member - 0.5 ? "neg" : ""}"><b>${won(p1[k].member)}</b></td>
@@ -393,6 +464,7 @@ function renderPayout() {
   }).join("");
   const shockLabel = S.shock ? `흉년 −${S.shock}%` : "평년";
   $("payout").innerHTML = `
+    <p class="lead">${shockSentence(e, p0, p1)}</p>
     <h3>평당 받는 돈 · ${esc(VIEW.sel.name)}</h3>
     <table aria-label="지급 방식별 평당 금액">
       <thead><tr><th>지급 방식</th><th>평년 (범위)</th><th>${shockLabel}</th><th>법인 유보 (${shockLabel})</th></tr></thead>
@@ -404,6 +476,81 @@ function renderPayout() {
       <tbody>${farmRows}</tbody>
     </table>
     <p class="hint">흉년은 총수입만 줄이고 생산비는 그대로 둡니다. 배당형은 손실이 나면 0원이고, 그 손실은 법인 유보에 표시됩니다.</p>`;
+}
+
+// ---------------------------------------------------------------- 설명 자료 (인쇄용 한 장)
+// 사무장이 쓰고, 대표가 정하고, 남은 농가를 설득한다. 대표에게는 결정할 거리를, 농가에게는 내 땅 기준 금액을 준다.
+function renderSheet() {
+  const kind = S.sheet || "boss";
+  $("sheet").className = `sheet ${kind}`;
+  $("sheet").innerHTML = kind === "boss" ? sheetBoss() : sheetFarm();
+}
+const today = () => new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+const sheetMeta = () => `포항 흥해 들녘 · 후보단지 ${esc(F.meta.complex_id)} (${esc(F.meta.complex_area_ha)}ha)`;
+
+function sheetBoss() {
+  const { stage, keep, full, ranked, holes } = VIEW, e = keep.ev;
+  const refused = [...refusedFarms()];
+  const best = ranked.find((o) => o.rank === 1);
+  const rows = [...new Map([keep, ...ranked.filter((o) => o.rank).slice(0, 3)].map((o) => [o.key, o])).values()];
+  const optRow = (o) => `<tr><td>${o.rank ? `${o.rank}순위 ` : ""}${esc(o.name)}<span class="sub">${esc(o.sub)}</span></td>
+      <td class="num">${ha(o.ev.area)}</td><td class="num">${o.ev.farms}명</td><td class="num">${o.persuade}농가</td>
+      <td class="num"><b>${eokS(o.ev.net.mid)}원</b><span class="sub">${eokS(o.ev.net.lo)}~${eokS(o.ev.net.hi)}</span></td>
+      <td>${o.meets ? VERD[o.v][0] : `기준 미달 (${esc(o.why)})`}</td></tr>`;
+  let rec;
+  if (stage === 0) rec = "아직 거절이 없습니다. 거절이 나오면 이 자료를 다시 뽑아 보고합니다.";
+  else if (!best) rec = "지원 기준을 넘는 대안이 없습니다. 주변 농가를 더 설득하거나, 지원 기준(면적·농가 수)을 다시 확인해야 합니다.";
+  else if (best.key === "keep") rec = `<b>그대로 진행</b>을 권합니다. 거절 농가를 빼도 지원 기준을 지키고, 법인 순수익 ${krw(best.ev.net.mid)}로 목표 판정 '${VERD[best.v][0]}'입니다.`;
+  else {
+    const who = best.added ? `${best.added.join(", ")} 농가 편입 설득` : "";
+    const ex = best.exIn ? "거절 농가와 경작권 교환 협의" : "";
+    rec = `<b>${esc(best.name)}</b>을 권합니다. ${esc(best.sub)}. 설득할 농가 ${best.persuade}곳, 법인 순수익 ${krw(best.ev.net.mid)}(범위 ${eokS(best.ev.net.lo)}~${eokS(best.ev.net.hi)}원), 목표 판정 '${VERD[best.v][0]}'.${best.v === "bad" ? ` 목표 순수익에 ${krw(S.target - best.ev.net.mid)} 모자라므로, 목표를 다시 정하거나 추가 편입을 함께 검토해야 합니다.` : ""}
+      <br>다음 할 일: ${esc([ex, who].filter(Boolean).join(" · "))}`;
+  }
+  return `
+    <header class="sh-head"><p class="kicker">대표 보고 · ${today()}</p><h1>참여 거절 대응안</h1><p class="muted">${sheetMeta()} · 목표 순수익 ${krw(S.target)} · 지원 기준 ${S.areaMin}ha · ${S.farmMin}명</p></header>
+    <section><h2>1. 상황 — ${STAGE[stage]}</h2>
+      <p>${stage ? `거절 ${refused.length}농가(${esc(refused.join(", "))}) · ${holes.length}필지 · ${ha(areaOf(holes))}가 빠졌습니다.` : "전원 참여 상태입니다."}</p></section>
+    <section><h2>2. 그대로 갈 때</h2>
+      <table><tbody>
+        <tr><th>경작 면적</th><td>${ha(e.area)} (기준 ${S.areaMin}ha) — ${e.area + 1e-9 >= S.areaMin ? "충족" : "미충족"}</td></tr>
+        <tr><th>참여 농가</th><td>${e.farms}명 (기준 ${S.farmMin}명) — ${e.farms >= S.farmMin ? "충족" : "미충족"}</td></tr>
+        <tr><th>법인 순수익 (연)</th><td>${krw(e.net.mid)} · 범위 ${eokS(e.net.lo)}~${eokS(e.net.hi)}원${stage ? ` · 전원 참여 대비 ${signPct(pct(e.net.mid, full.net.mid))}` : ""}</td></tr>
+        <tr><th>남은 조합원 평당 배당</th><td>${won(e.per.mid)}${stage ? ` · 전원 참여 대비 ${signPct(pct(e.per.mid, full.per.mid))}` : ""}</td></tr>
+      </tbody></table></section>
+    ${stage ? `<section><h2>3. 대안 비교</h2>
+      <table><thead><tr><th>대안</th><th class="num">면적</th><th class="num">농가</th><th class="num">설득</th><th class="num">순수익(연)</th><th>판정</th></tr></thead>
+      <tbody>${rows.map(optRow).join("")}</tbody></table></section>` : ""}
+    <section><h2>${stage ? 4 : 3}. 권고</h2><p>${rec}</p></section>
+    <section><h2>${stage ? 5 : 4}. 결정할 일</h2>
+      <ul class="checks"><li>권고안으로 진행할지</li><li>설득·교환 협의 담당자와 기한</li><li>남은 농가 설명 일정 (농가 설명용 자료 첨부)</li></ul></section>
+    <footer class="sh-foot">순수익은 국가데이터처 논벼 생산비조사(2020~2025년산) 10a당 총수입 최저·평균·최고로 계산한 추정치입니다. 소유자는 추정값이며, 기계비·법인 운영비는 가정값입니다.</footer>`;
+}
+
+function sheetFarm() {
+  const { stage, full, sel } = VIEW, e = sel.ev;
+  const { p0, p1, pLo, pHi } = payoutNums(e);
+  const dPer = pct(e.per.mid, full.per.mid);
+  const shockLabel = S.shock ? `흉년 (수확 −${S.shock}%)` : "평년";
+  const who = { div: "조합원", rent: "법인", mix: "나눠서 짐" };
+  const lead = !stage ? `전원 참여하면 평당 배당은 보통 해 <b>${won(e.per.mid)}</b>입니다.`
+    : `이웃 농가 일부가 빠졌지만, 남은 분들이 평당 받는 배당은 <b class="nw">${won(e.per.mid)}</b>으로 전원 참여 때(<span class="nw">${won(full.per.mid)}</span>)와 ${Math.abs(dPer) < 2
+      ? `거의 같습니다 (<span class="nw">${signPct(dPer)}</span>). 빠진 땅만큼 법인 수입도, 나눌 면적도 함께 줄기 때문입니다.`
+      : `비교해 ${signPct(dPer)} ${dPer > 0 ? "늘어납니다" : "줄어듭니다"}.`}`;
+  const range = (k) => Math.round(pLo[k].member) === Math.round(pHi[k].member) ? "고정" : `${Math.round(pLo[k].member).toLocaleString("ko-KR")}~${Math.round(pHi[k].member).toLocaleString("ko-KR")}원`;
+  const row = (k) => `<tr ${k === S.pay ? 'class="sel"' : ""}><td>${PAY_NAMES[k]}</td><td class="num"><b>${won(p0[k].member)}</b></td><td class="num">${range(k)}</td><td class="num">${won(p1[k].member)}</td><td>${who[k]}</td></tr>`;
+  const mine = [1000, 2000, 3000, 5000].map((py) => `<tr><td>${py.toLocaleString("ko-KR")}평 <span class="muted">(${(py / P.PY_PER_HA).toFixed(2)}ha)</span></td>
+      <td class="num"><b>${man(py * p0[S.pay].member)}</b></td><td class="num">${man(py * p1[S.pay].member)}</td></tr>`).join("");
+  return `
+    <header class="sh-head"><p class="kicker">참여 농가 안내 · ${today()}</p><h1>공동영농 배당 안내</h1><p class="muted">${sheetMeta()}</p></header>
+    <p class="lead">${lead}</p>
+    <section><h2>평당 받는 돈 (1년)</h2>
+      <table><thead><tr><th>지급 방식</th><th class="num">보통 해</th><th class="num">최근 6년 범위</th><th class="num">${shockLabel}</th><th>흉년 손해는</th></tr></thead>
+      <tbody>${["div", "rent", "mix"].map(row).join("")}</tbody></table></section>
+    <section><h2>내 땅이면 1년에 얼마 (${PAY_NAMES[S.pay]})</h2>
+      <table><thead><tr><th>내 땅</th><th class="num">보통 해</th><th class="num">${shockLabel}</th></tr></thead><tbody>${mine}</tbody></table></section>
+    <p class="note">이 금액은 최근 6년(2020~2025년산) 논벼 수입으로 계산한 <b>추정치</b>이며, 약속된 금액이 아닙니다. 재해보험과 직불금은 빼고 계산했습니다.</p>
+    <p class="contact">궁금한 점은 법인 사무장에게 물어 주세요. 연락처 ______________________</p>`;
 }
 
 // ---------------------------------------------------------------- 이벤트
@@ -472,6 +619,26 @@ function init() {
   bindSeg("segPay", "pay", String, "지급 방식");
   [1, 2, 3].forEach((i) => $(`tab${i}`).addEventListener("click", () => selectTab(i)));
   $("btnReset").addEventListener("click", () => { S.off.clear(); S.sel = null; recompute(); flash("처음 상태로"); });
+  $("refused").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-restore]"); if (!b) return;
+    const f = b.dataset.restore;
+    F.farms.get(f).parcels.forEach((id) => S.off.delete(id));
+    S.sel = null; recompute(); flash(`${f} 복구`);
+    ($("refused").querySelector("[data-restore]") || $("btnReset")).focus();
+  });
+  $("decide").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-pick]"); if (!b) return;
+    S.sel = b.dataset.pick; selectTab(1); recompute();
+    $("map").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+  $("btnSheet").addEventListener("click", () => { renderSheet(); $("sheetDlg").showModal(); });
+  $("btnClose").addEventListener("click", () => $("sheetDlg").close());
+  $("btnPrint").addEventListener("click", () => window.print());
+  $("segSheet").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    $("segSheet").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    S.sheet = b.dataset.v; renderSheet();
+  });
   recompute();
 }
 document.addEventListener("DOMContentLoaded", init);
