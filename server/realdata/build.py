@@ -101,10 +101,15 @@ def build(shp: Path, bbox, name: str, soil_budget: int = 900, use_soil: bool = T
 
     vkey = http.key("VWORLD_KEY")
     if use_vworld and vkey:
-        cad, cinfo = vworld.fetch_parcels(bbox, vkey)
-        einfo = vworld.enrich(feats, cad)
-        status["vworld"] = {"used": True, **cinfo, **einfo}
-        _log(f"[연속지적도] 지적 필지 {cinfo['n_parcels']}개, 도로 필지 인접 {einfo['adjacent_to_road_parcel']}개, 공시지가 {einfo['with_land_value']}개")
+        try:
+            cad, cinfo = vworld.fetch_parcels(bbox, vkey)
+            einfo = vworld.enrich(feats, cad)
+            status["vworld"] = {"used": True, **cinfo, **einfo}
+            _log(f"[연속지적도] 지적 필지 {cinfo['n_parcels']}개, 도로 필지 인접 {einfo['adjacent_to_road_parcel']}개, 공시지가 {einfo['with_land_value']}개")
+        except Exception as exc:  # noqa: BLE001  네트워크가 막힌 환경에서도 지도는 만든다
+            status["vworld"] = {"used": False, "reason": f"브이월드 접속 실패: {exc}"}
+            warnings.append("연속지적도를 받지 못했습니다(브이월드 접속 실패). 지적 도로 필지 인접과 공시지가가 빠집니다. 같은 명령을 다시 돌리면 채워집니다.")
+            _log(f"[연속지적도] 접속 실패, 건너뜀: {exc}")
     else:
         status["vworld"] = {"used": False, "reason": "VWORLD_KEY 없음" if use_vworld else "--no-vworld"}
 
