@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>빈 필드 시뮬레이터</title>
+  <meta name="description" content="공동영농 참여를 거절한 농가가 생겼을 때, 지원 기준과 배당금이 어떻게 바뀌는지와 대체 필지를 바로 보여 주는 시뮬레이터">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233f8f5a'/%3E%3Crect x='7' y='7' width='8' height='8' fill='%23fff'/%3E%3Crect x='17' y='7' width='8' height='8' fill='%23fff'/%3E%3Crect x='7' y='17' width='8' height='8' fill='%23fff'/%3E%3Crect x='17' y='17' width='8' height='8' fill='%23c4492d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ayaan-fonts/Freesentation@77fabb856ca65471053a54e56490802b703d23e6/fonts/webfonts/Freesentation-dynamic-subset.css">
+  <link rel="stylesheet" href="empty-field.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>빈 필드 시뮬레이터</h1>
+      <nav class="nav" aria-label="다른 화면">
+        <a href="index.html">후보단지</a>
+        <a href="operations.html">단지 운영 설계</a>
+      </nav>
+    </div>
+    <ol class="stepper" id="stepper" aria-label="현재 상황">
+      <li data-stage="0">① 기본 필지화</li>
+      <li data-stage="1">② 구멍 · 기준 충족</li>
+      <li data-stage="2">③ 구멍 · 기준 미충족</li>
+    </ol>
+    <div class="top-actions">
+      <button type="button" class="btn ghost" id="btnReset">처음 상태로</button>
+      <button type="button" class="btn primary" id="btnSheet">설명 자료 만들기</button>
+    </div>
+  </header>
+
+  <details class="toggle howto">
+    <summary>사용 방법 — 지도에서 거절한 농가를 누르면, 빼고 갈지 메울지를 맨 위에서 바로 알려 줍니다</summary>
+    <ol class="steps">
+      <li><b>거절 농가를 누릅니다.</b> 지도에서 초록 필지를 누르면 그 농가의 필지가 모두 빠집니다(거절은 보통 농가 단위로 일어나므로). 한 칸만 빼 보고 싶으면 지도 위 "해제 단위"를 <b>필지 한 칸</b>으로 바꿉니다. 다시 누르거나 왼쪽 "거절 기록"에서 복구합니다.</li>
+      <li><b>맨 위 결론을 봅니다.</b> 빼고 가도 되는지, 법인 순수익과 남은 조합원 평당 배당이 얼마나 바뀌는지, 1순위 대안이 무엇인지 한 줄로 나옵니다.</li>
+      <li><b>대안을 비교합니다.</b> 오른쪽 1번 탭 표에서 대안을 누르면 지도에 편입 땅과 트랙터 경로가 겹쳐 보입니다.</li>
+      <li><b>설명 자료를 뽑습니다.</b> 오른쪽 위 <b>설명 자료 만들기</b>로 대표 보고용 한 장, 남은 농가 설명용 한 장을 인쇄합니다.</li>
+      <li><b>조건을 맞춥니다.</b> 목표 순수익, 지원 면적 기준(20ha 현행 · 50ha 상향 검토), 지급 방식은 왼쪽에서 바꿉니다.</li>
+    </ol>
+  </details>
+
+  <!-- 결론: 사무장이 거절 당일 가장 먼저 묻는 "빼고 가도 되나, 메워야 하나" -->
+  <section class="decide" id="decide" aria-live="polite" aria-label="거절 영향 결론"></section>
+
+  <main class="layout">
+    <!-- 왼쪽: 목표와 판정 -->
+    <aside class="col left" aria-label="목표와 판정">
+      <section class="card">
+        <h2>목표</h2>
+        <label class="field">법인 목표 순수익 (만 원/년)
+          <input type="number" id="inTarget" min="0" step="100">
+        </label>
+        <p class="hint">기본값: 전원 참여 때의 순수익(원래 계획). 고정비와 유보 목표에 맞춰 바꾸세요.</p>
+        <div class="field">지원 면적 기준
+          <div class="seg" id="segArea" role="radiogroup" aria-label="지원 면적 기준">
+            <button type="button" data-v="20" aria-pressed="true">20ha 현행</button>
+            <button type="button" data-v="50" aria-pressed="false">50ha 상향 검토</button>
+          </div>
+        </div>
+        <label class="field">최소 참여 농가 (명)
+          <input type="number" id="inFarmMin" min="1" max="20" value="5">
+        </label>
+        <div class="field">지급 방식
+          <div class="seg" id="segPay" role="radiogroup" aria-label="지급 방식">
+            <button type="button" data-v="div" aria-pressed="true">배당형</button>
+            <button type="button" data-v="rent" aria-pressed="false">고정 임차료</button>
+            <button type="button" data-v="mix" aria-pressed="false">혼합</button>
+          </div>
+        </div>
+        <p class="recalc" id="recalc" aria-live="polite">조건을 바꾸면 바로 다시 계산됩니다</p>
+      </section>
+
+      <section class="card">
+        <h2>거절 기록 <span class="muted" id="refusedCount"></span></h2>
+        <ul class="refused" id="refused"></ul>
+      </section>
+
+      <section class="card" aria-live="polite">
+        <h2>판정 <span class="muted" id="judgeOf"></span></h2>
+        <div id="judge"></div>
+        <details class="toggle">
+          <summary>판정 규칙과 범위의 근거</summary>
+          <ul class="list">
+            <li><b>지원 기준</b>: 농식품부 「공동영농 확산 지원사업」 신청 자격(농업인 5명 이상, 경작 면적 20ha 이상). 법이 아니라 지원을 받기 위한 조건입니다. 50ha는 개선안으로 검토 중인 값입니다.</li>
+            <li><b>연결성</b>: 공식 요건은 아닙니다. 단지가 한 덩어리일 때 농기계 작업이 끊기지 않아 권장 항목으로 보여 줍니다.</li>
+            <li><b>목표는 법인 순수익</b>: 1차 고객인 법인은 "거절이 나와도 순수익을 지킬 수 있나"로 결정합니다. 평당 배당은 농가 설득용 보조 지표입니다.</li>
+            <li><b>순수익 범위</b>: 논벼 10a당 총수입의 최근 6년(2020~2025년산) 최저·평균·최고로 보수·기준·낙관을 계산합니다.</li>
+            <li><b>목표 판정</b>: <span class="chip safe">안전</span> 범위 하한도 목표 이상 · <span class="chip ok">가능</span> 기준값만 목표 이상 · <span class="chip bad">미달</span> 기준값도 목표 미만</li>
+          </ul>
+        </details>
+      </section>
+    </aside>
+
+    <!-- 가운데: 지도 -->
+    <section class="col map" aria-label="들녘 지도">
+      <div class="map-head">
+        <h2>들녘 지도 <span class="muted" id="mapMeta">포항 흥해 실측 필지</span></h2>
+        <div class="unit">
+          <span class="muted">해제 단위</span>
+          <div class="seg" id="segUnit" role="radiogroup" aria-label="지도를 누를 때 해제되는 단위">
+            <button type="button" data-v="farm" aria-pressed="true">농가 전체</button>
+            <button type="button" data-v="parcel" aria-pressed="false">필지 한 칸</button>
+          </div>
+        </div>
+      </div>
+      <p class="hover-info" id="hoverInfo" aria-live="polite"></p>
+      <div class="map-wrap">
+        <svg id="map" role="img" aria-label="필지 지도"></svg>
+      </div>
+      <ul class="legend" aria-label="범례">
+        <li><i class="sw coop"></i>법인 단지</li>
+        <li><i class="sw hole"></i>거절(빠진 땅)</li>
+        <li><i class="sw add"></i>편입하는 땅</li>
+        <li><i class="sw cand"></i>편입 후보</li>
+        <li><i class="sw ex"></i>경작권 교환</li>
+        <li><i class="sw out"></i>비참여 논</li>
+        <li><i class="sw bg"></i>밭·시설·다른 단지</li>
+        <li><i class="sw route"></i>트랙터 경로</li>
+      </ul>
+      <p class="map-note" id="mapNote" aria-live="polite"></p>
+    </section>
+
+    <!-- 오른쪽: 핵심 활동 1·2·3 -->
+    <section class="col right" aria-label="결과">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab1" aria-controls="pane1" aria-selected="true">1 대체 필지 추천</button>
+        <button type="button" role="tab" id="tab2" aria-controls="pane2" aria-selected="false">2 기계비 · 경로</button>
+        <button type="button" role="tab" id="tab3" aria-controls="pane3" aria-selected="false">3 배당금 · 흉년</button>
+      </div>
+
+      <div class="pane" id="pane1" role="tabpanel" aria-labelledby="tab1">
+        <div id="optTable"></div>
+        <details class="toggle">
+          <summary>순위를 정하는 기준</summary>
+          <ol class="list">
+            <li>지원 기준(면적·농가 수)을 넘지 못하는 안은 회색으로 두고 순위에서 뺍니다.</li>
+            <li>목표 판정이 <span class="chip safe">안전</span>인 안을 <span class="chip ok">가능</span>보다 앞에 둡니다.</li>
+            <li>새로 설득해야 할 농가 수가 적은 안을 앞에 둡니다.</li>
+            <li>법인 순수익 기준값이 높은 안을 앞에 둡니다.</li>
+          </ol>
+          <p class="hint">경작권 교환: 거절 농가에게 단지 가장자리 필지를 맡기고, 구멍 자리는 법인이 짓습니다. 구멍은 메워지지만 면적은 늘지 않습니다.</p>
+        </details>
+      </div>
+
+      <div class="pane" id="pane2" role="tabpanel" aria-labelledby="tab2" hidden>
+        <div id="machine"></div>
+        <details class="toggle">
+          <summary>기계비 계산 방법</summary>
+          <ul class="list">
+            <li>필지 안 작업비는 면적에 비례해 생산비에 이미 들어 있으므로, 여기서는 단지 모양 때문에 달라지는 <b>부대 기계비</b>만 셉니다.</li>
+            <li>블록 진입·세팅: 블록 1개, 작업 1회당 15분</li>
+            <li>이동 경로: 보관소에서 출발해 농로로 나뉜 열을 왼쪽부터 지그재그로 돌며 법인 필지를 모두 지나고 돌아옵니다. 구멍은 건너뛰고, 편입한 땅은 경로에 더해지므로 대안마다 경로가 달라집니다. 시속 12km</li>
+            <li>구멍 주변 회전: 단지 안쪽 경계 1변, 작업 1회당 2분</li>
+            <li>연 작업 8회, 기계 시간당 6만 원(운전자 포함). 모두 가정값입니다.</li>
+          </ul>
+          <p class="hint">시뮬레이션에서 구멍 때문에 늘어나는 경로·기계비는 순이익의 1% 안팎으로 작았습니다. 구멍의 큰 손실은 면적 기준 미달 쪽에서 옵니다.</p>
+        </details>
+      </div>
+
+      <div class="pane" id="pane3" role="tabpanel" aria-labelledby="tab3" hidden>
+        <div class="field">작황 (평년 대비 수확량)
+          <input type="range" id="inShock" min="0" max="50" step="10" value="20" aria-describedby="shockVal">
+          <span class="muted" id="shockVal"></span>
+        </div>
+        <div id="payout"></div>
+        <details class="toggle">
+          <summary>지급 방식의 차이 (배당 · 고정 임차료 · 혼합)</summary>
+          <ul class="list">
+            <li><b>배당형</b>: 법인 순수익을 면적대로 나눕니다. 풍년이면 많이 받고, 흉년 손실은 조합원이 집니다.</li>
+            <li><b>고정 임차료형</b>: 성과와 상관없이 평당 고정 금액을 받습니다. 흉년 손실은 법인이 떠안습니다. 기본값 927원은 2025년산 논벼 10a당 토지용역비 280,283원을 평으로 나눈 값입니다.</li>
+            <li><b>혼합형</b>: 고정 임차료에 더해, 남는 이익의 절반을 성과급으로 나눕니다 (비율은 가정).</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <details class="toggle">
+      <summary>근거 자료</summary>
+      <ul class="list">
+        <li>국가데이터처, 「2025년산 논벼(쌀) 생산비조사 결과」(2026.3.27): 10a당 총수입 2020~2025년산 1,152,894~1,348,651원, 5ha 이상 농가 직접생산비 508천원, 토지용역비 280,283원</li>
+        <li>농림축산식품부 「공동영농 확산 지원사업」: 농업인 5명 이상·경작 면적 20ha 이상 농업법인, 개소당 2년 최대 20억 원 (2026년 시범, 2027년 누적 36개소로 확대 계획)</li>
+        <li>농림축산식품부 공동영농 확산 민·관 협의체(2026.7.27): 농지 집적화·품목 구성·소득 배분·사업 운영 개선안을 11월까지 마련. 면적 기준 상향(20ha→50ha)과 벼 포함을 검토 중</li>
+        <li>참고 사례: 의성 화성영농조합법인 배당 3.3㎡당 2,000원 (경상북도 발표 인용 보도)</li>
+        <li>지도: 팜맵 필지 경계·논밭 구분, 흙토람 토양·배수, OpenStreetMap 도로로 만든 포항 흥해 들녘 실측 지도(2,666필지). 후보단지 시뮬레이터가 고른 단지 6과 주변 260m 안의 필지를 씁니다.</li>
+        <li>추정 소유자의 농가 규모 1.8ha: 위천친환경영농조합법인(2026 공동영농 확산 지원사업 선정) 30ha·17농가 보도</li>
+        <li>법인 운영비 ha당 30만 원, 기계 비용·작업 횟수는 가정값</li>
+      </ul>
+    </details>
+    <details class="toggle">
+      <summary>이 화면의 한계와 가정</summary>
+      <ul class="list">
+        <li>필지 모양과 면적은 실측이지만 <b>소유자는 추정값</b>입니다. 농지대장이 비공개라, 이웃한 필지를 농가당 약 1.8ha가 되도록 묶었습니다. 법인이 실제 참여·거절 명단을 넣으면 바뀝니다.</li>
+        <li>참여 필지는 단지 안의 논만 씁니다. 밭·시설·과수와 다른 후보단지에 든 필지는 편입 후보에서 뺍니다.</li>
+        <li>작물은 논벼 기준으로 계산합니다. 2026년 지원사업은 쌀을 제외한 품목이 대상이므로, 실제 적용 때는 콩·가루쌀 등 작목 자료로 바꿔야 합니다.</li>
+        <li>경작권 교환으로 나간 땅의 임차료 정산은 계산하지 않습니다.</li>
+        <li>흉년은 총수입만 줄이고 생산비는 그대로 둡니다. 재해보험 보전과 직불금은 넣지 않았습니다.</li>
+      </ul>
+    </details>
+  </footer>
+
+  <!-- 설명 자료: 대표(결정권자) 보고용과 남은 농가 설명용 한 장 -->
+  <dialog class="sheet-dlg" id="sheetDlg" aria-labelledby="sheetTitle">
+    <div class="dlg-head">
+      <h2 id="sheetTitle">설명 자료</h2>
+      <div class="seg" id="segSheet" role="radiogroup" aria-label="자료 종류">
+        <button type="button" data-v="boss" aria-pressed="true">대표 보고용</button>
+        <button type="button" data-v="farm" aria-pressed="false">농가 설명용</button>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn primary" id="btnPrint">인쇄</button>
+        <button type="button" class="btn" id="btnClose">닫기</button>
+      </div>
+    </div>
+    <article class="sheet" id="sheet"></article>
+  </dialog>
+
+  <script src="data/empty-field-heunghae.js"></script>
+  <script src="empty-field.js"></script>
+</body>
+</html>
