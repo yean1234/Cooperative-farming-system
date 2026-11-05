@@ -294,6 +294,7 @@ def main() -> None:
     ap.add_argument("region", type=Path, help="build.py로 만든 지도 JSON")
     ap.add_argument("--dates", nargs="+", default=["2023-06-01/2023-06-30"], help="담수기 장면 날짜 또는 기간(시작/끝). 여러 장면이면 필지별 NDWI 중앙값")
     ap.add_argument("--before-dates", nargs="+", help="단지 조성 전 담수기 장면(예: 2023-06-06). 주면 '전에는 담수, 후에는 건조'인 논만 후보로 본다")
+    ap.add_argument("--before-all", action="store_true", help="'조성 전 담수' 조건을 팜맵 밭 판독 필지에도 적용한다(오래전에 밭작물로 바뀐 논을 뺀다)")
     ap.add_argument("--max-cloud", type=float, default=30.0)
     ap.add_argument("--n-scenes", type=int, default=2, help="기간을 줬을 때 쓸 가장 맑은 장면 수")
     ap.add_argument("--index", choices=["mndwi", "ndwi"], default="mndwi", help="담수 판정 지수. MNDWI(녹색-SWIR)가 어린 벼가 있어도 물을 잘 잡는다")
@@ -304,6 +305,7 @@ def main() -> None:
     ap.add_argument("--min-cover", type=float, default=0.6, help="필지 안 유효(구름 아님) 화소 비율 하한")
     ap.add_argument("--min-ha", type=float, default=60.0, help="단지로 볼 덩어리 최소 면적")
     ap.add_argument("--max-ha", type=float, default=250.0)
+    ap.add_argument("--village", nargs="+", help="이 리(里) 이름이 면적의 절반 이상인 덩어리만 정답으로 남긴다(법인 소재지로 거른다)")
     ap.add_argument("--fill-holes", action="store_true", help="덩어리에 둘러싸인(이웃이 모두 덩어리인) 담수 논도 단지에 넣는다")
     ap.add_argument("--out", type=Path, help="저장할 JSON(없으면 region을 덮어쓴다)")
     ap.add_argument("--png", type=Path, help="확인용 그림")
@@ -345,16 +347,25 @@ def main() -> None:
         if before:
             perb = [scene_indices(scn, sc) for sc in before]
             with np.errstate(all="ignore"):
-                ndwi_b = np.nanmedian(np.vstack([np.where(p["cover"] >= a.min_cover, p[key], np.nan) for p in perb]), axis=0)
+                # 조성 전 장면이 여럿이면 '한 번이라도 담수'로 본다(모내기 시점이 필지마다 달라서)
+                ndwi_b = np.nanmax(np.vstack([np.where(p["cover"] >= a.min_cover, p[key], np.nan) for p in perb]), axis=0)
             wet_before = np.isfinite(ndwi_b) & (ndwi_b >= thr)
             n0 = dry.sum()
             dry &= wet_before
+            if a.before_all:
+                converted_before = wet_before
+            else:
+                converted_before = np.ones(n, dtype=bool)
             log(f"[변화] 조성 전 담수였던 논만 남김: {n0}개 → {dry.sum()}개 {area_ha[dry].sum():.1f}ha")
             per = per + perb
     jimok_paddy = np.array([f["properties"].get("jimok") == "답" for f in feats])
     converted = jimok_paddy & np.array([f["properties"].get("land_use") == "밭" for f in feats])
     cand = dry.copy()
     if not a.no_converted:
+        if a.before_dates and a.before_all:
+            n1 = converted.sum()
+            converted = converted & converted_before
+            log(f"[전환] 조성 전 담수였던 필지만: {n1}개 → {converted.sum()}개")
         cand |= converted
         log(f"[전환] 지목 답인데 팜맵 밭 판독 {converted.sum()}개 {area_ha[converted].sum():.1f}ha 를 후보에 더함")
     nb = neighbor_lists(scn, a.link_m)
@@ -373,6 +384,11 @@ def main() -> None:
         if ha > a.max_ha:
             log(f"  덩어리 {ha:.1f}ha는 --max-ha {a.max_ha}를 넘어 제외(문턱값을 올려 보세요)")
             continue
+        if a.village:
+            in_v = sum(area_ha[i] for i in comp if any(v in (feats[i]["properties"].get("address") or "") for v in a.village))
+            if in_v < 0.5 * ha:
+                log(f"  덩어리 {ha:.1f}ha는 {'/'.join(a.village)} 밖이라 제외")
+                continue
         k += 1
         truth[comp] = k
         log(f"  truth {k}: 필지 {len(comp)}개 {ha:.1f}ha")
