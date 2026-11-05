@@ -293,6 +293,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Sentinel-2로 공동영농 단지 근사 경계(truth_complex)를 지도 JSON에 붙인다")
     ap.add_argument("region", type=Path, help="build.py로 만든 지도 JSON")
     ap.add_argument("--dates", nargs="+", default=["2023-06-01/2023-06-30"], help="담수기 장면 날짜 또는 기간(시작/끝). 여러 장면이면 필지별 NDWI 중앙값")
+    ap.add_argument("--before-dates", nargs="+", help="단지 조성 전 담수기 장면(예: 2023-06-06). 주면 '전에는 담수, 후에는 건조'인 논만 후보로 본다")
     ap.add_argument("--max-cloud", type=float, default=30.0)
     ap.add_argument("--n-scenes", type=int, default=2, help="기간을 줬을 때 쓸 가장 맑은 장면 수")
     ap.add_argument("--index", choices=["mndwi", "ndwi"], default="mndwi", help="담수 판정 지수. MNDWI(녹색-SWIR)가 어린 벼가 있어도 물을 잘 잡는다")
@@ -339,6 +340,17 @@ def main() -> None:
     log(f"[문턱] {key.upper()} {thr:.3f} ({'지정' if a.ndwi is not None else 'Otsu'}), 논 10~90분위 {lo:.3f}~{hi:.3f}")
     dry = paddy & valid & (ndwi < thr)
     log(f"[판정] 담수 안 된 논 {dry.sum()}개 {area_ha[dry].sum():.1f}ha / 담수 논 {(paddy & valid & ~dry).sum()}개")
+    if a.before_dates:
+        before = find_scenes(bbox, a.before_dates, a.max_cloud, a.n_scenes)
+        if before:
+            perb = [scene_indices(scn, sc) for sc in before]
+            with np.errstate(all="ignore"):
+                ndwi_b = np.nanmedian(np.vstack([np.where(p["cover"] >= a.min_cover, p[key], np.nan) for p in perb]), axis=0)
+            wet_before = np.isfinite(ndwi_b) & (ndwi_b >= thr)
+            n0 = dry.sum()
+            dry &= wet_before
+            log(f"[변화] 조성 전 담수였던 논만 남김: {n0}개 → {dry.sum()}개 {area_ha[dry].sum():.1f}ha")
+            per = per + perb
     jimok_paddy = np.array([f["properties"].get("jimok") == "답" for f in feats])
     converted = jimok_paddy & np.array([f["properties"].get("land_use") == "밭" for f in feats])
     cand = dry.copy()
