@@ -1184,6 +1184,8 @@ async function boot() {
     }
   });
 
+  // 서버 없이 파일만 올린 곳(GitHub Pages 등)에서는 계산할 수 없으므로 안내만 한다
+  if (!(await MF.serverUp())) { MF.showServerNotice($("alert")); setStatus("계산 서버 없음 · 공개 데모"); return; }
   try {
     state.defaults = await api("/api/defaults");
   } catch (err) {

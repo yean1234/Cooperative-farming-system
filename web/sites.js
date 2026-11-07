@@ -532,6 +532,12 @@ async function boot() {
   $("btnCsv").addEventListener("click", downloadCsv);
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderRoads(); renderAllResults(); });
   if (q.has("truth")) $("showTruth").checked = true;
+  // 서버 없이 파일만 올린 곳(GitHub Pages 등)에서는 계산할 수 없으므로 안내만 한다
+  if (!(await MF.serverUp())) {
+    MF.showServerNotice($("alert")); setStatus("계산 서버 없음 · 공개 데모");
+    $("realSelect").replaceChildren(h("option", { text: "계산 서버가 필요합니다" }));
+    return;
+  }
   // 기본은 첫 실측 지도. ?map=demo 면 가상 읍면, ?map=<이름> 이면 그 실측 지도
   const regions = await listReal();
   const want = q.get("map");

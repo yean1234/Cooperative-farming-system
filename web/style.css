@@ -54,7 +54,7 @@
     --focus: #60c58c;
     --shadow: none;
     /* 공통 머리글(site.css) 어두운 화면 값: 띠는 깊은 초록으로 눈부심을 줄이고, 화면 제목 줄은 밝은 글자 */
-    --mf-bar-bg: #142f20; --mf-bar-gradient: linear-gradient(180deg, #1d4630 0%, #142f20 55%, #0e2418 100%); --mf-bar-pill: #daf7e4; --mf-bar-pill-ink: #105433; --mf-bar-edge: #1f7a4d;
+    --mf-bar-bg: #142f20; --mf-bar-gradient: linear-gradient(180deg, #1d4630 0%, #142f20 55%, #0e2418 100%); --mf-bar-edge: #1f7a4d; --mf-bar-ink: #ffffff; --mf-bar-muted: #c4dccd; --mf-bar-line: rgba(255, 255, 255, 0.7); --mf-bar-pill: #daf7e4; --mf-bar-pill-ink: #105433; --mf-bar-focus: #ffffff; --mf-bar-tab: var(--page); --mf-logo-color: none; --mf-logo-white: block;
     --mf-chrome-ink: #f1f4f2; --mf-chrome-muted: #c3cbc6; --mf-chrome-current-ink: #a9f2c5; --mf-chrome-accent: #60c58c;
   }
 }
@@ -83,7 +83,7 @@
   --focus: #60c58c;
   --shadow: none;
   /* 공통 머리글(site.css) 어두운 화면 값: 띠는 깊은 초록으로 눈부심을 줄이고, 화면 제목 줄은 밝은 글자 */
-  --mf-bar-bg: #142f20; --mf-bar-gradient: linear-gradient(180deg, #1d4630 0%, #142f20 55%, #0e2418 100%); --mf-bar-pill: #daf7e4; --mf-bar-pill-ink: #105433; --mf-bar-edge: #1f7a4d;
+  --mf-bar-bg: #142f20; --mf-bar-gradient: linear-gradient(180deg, #1d4630 0%, #142f20 55%, #0e2418 100%); --mf-bar-edge: #1f7a4d; --mf-bar-ink: #ffffff; --mf-bar-muted: #c4dccd; --mf-bar-line: rgba(255, 255, 255, 0.7); --mf-bar-pill: #daf7e4; --mf-bar-pill-ink: #105433; --mf-bar-focus: #ffffff; --mf-bar-tab: var(--page); --mf-logo-color: none; --mf-logo-white: block;
   --mf-chrome-ink: #f1f4f2; --mf-chrome-muted: #c3cbc6; --mf-chrome-current-ink: #a9f2c5; --mf-chrome-accent: #60c58c;
 }
 
@@ -114,6 +114,10 @@ p { margin: 0 0 8px; }
   margin: 12px 16px 0; padding: 10px 12px; border-radius: 8px;
   border: 1px solid var(--critical); color: var(--text-primary); background: var(--surface-1);
 }
+/* 안내(오류가 아님): 계산 서버가 없는 공개 데모 등 */
+.alert.info { border-color: var(--border); border-left: 4px solid var(--mf-info); background: var(--surface-1); line-height: 1.6; }
+.alert.info a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.alert.info code { padding: 1px 6px; border-radius: 4px; background: var(--surface-2); font-size: 0.9em; }
 
 /* 배치 */
 .layout {

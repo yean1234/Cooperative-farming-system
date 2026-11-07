@@ -26,3 +26,21 @@
     }));
   });
 })();
+
+/* 계산 서버가 필요한 화면(후보단지 찾기 · 단지 운영 설계)이 쓴다.
+ * GitHub Pages처럼 파일만 올린 곳에는 서버가 없으므로, 오류 대신 무엇을 하면 되는지 알려 준다. */
+window.MF = {
+  async serverUp() {
+    try {
+      const r = await fetch("/api/health", { cache: "no-store" });
+      return r.ok && (await r.json()).status === "ok";
+    } catch (e) { return false; }
+  },
+  showServerNotice(box) {
+    box.classList.add("info");
+    box.innerHTML = "<b>이 화면은 계산 서버가 있어야 동작합니다.</b> 지금 주소는 파일만 올린 공개 데모라 서버가 없습니다. "
+      + "서버 없이 바로 쓸 수 있는 <a href=\"empty-field.html\">거절 대응(빈 필드 시뮬레이터)</a>을 써 보세요. "
+      + "이 화면은 내 컴퓨터에서 <code>python -m server</code>로 서버를 켜고 열면 됩니다.";
+    box.hidden = false;
+  },
+};
