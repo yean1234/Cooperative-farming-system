@@ -116,6 +116,9 @@ server/
   realdata/     실측 지도 빌더: 팜맵 SHP, OSM 도로, Copernicus DEM, 흙토람·연속지적도 API
 data/regions/   실측 지도 JSON(흥해)
 web/            화면(HTML·CSS·JS, 빌드 과정 없음)
+  site.css      세 화면 공통: '모두의 농장' 브랜드 색·글꼴(Wanted Sans), 머리글·바닥글
+  site.js       세 화면 공통: 글자 크기 3단계(보통·크게·더 크게)
+  brand/        로고·파비콘 (사용법은 brand/README.md)
 tests/          pytest 38개
 docs/           기획 문서, 실측 데이터 연동 문서, 화면 이미지
 ```
