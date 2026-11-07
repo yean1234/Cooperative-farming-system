@@ -46,13 +46,13 @@
   .hero .meta { position: absolute; left: var(--safe); top: 404mm; font-size: 14.5mm; color: #cfeadb; font-weight: 500; }
   .hero .meta b { color: #fff; }
 
-  /* 목업: 유일하게 그림자를 쓰는 곳(물체이기 때문) */
-  .browser { position: absolute; background: #fff; border-radius: 7mm; overflow: hidden; box-shadow: 0 10mm 28mm rgba(10,30,20,.32); }
+  /* 목업: 그림자 없이 진초록 테두리만 (그림자는 일부 PDF 뷰어에서 불투명 사각형으로 보인다) */
+  .browser { position: absolute; background: #fff; border-radius: 7mm; overflow: hidden; border: 1.2mm solid #105433; }
   .browser .bar { height: 16mm; background: #eceeec; display: flex; align-items: center; gap: 4mm; padding: 0 8mm; border-bottom: 0.4mm solid #dcdfdc; }
   .browser .bar i { width: 6mm; height: 6mm; border-radius: 50%; background: #c6cbc6; display: block; }
   .browser .bar span { margin-left: 8mm; flex: 1; height: 8.5mm; border-radius: 4mm; background: #fff; }
   .browser img { display: block; width: 100%; height: auto; }
-  .paper { position: absolute; background: #fff; overflow: hidden; box-shadow: 0 8mm 24mm rgba(10,30,20,.3); border-radius: 2mm; }
+  .paper { position: absolute; background: #fff; overflow: hidden; border: 1mm solid #105433; border-radius: 2mm; }
   .paper img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
   .hero .browser { left: 612mm; top: 58mm; width: 548mm; transform: rotate(-3deg); transform-origin: 50% 50%; }
   .hero .paper { left: 972mm; top: 318mm; width: 190mm; height: 269mm; transform: rotate(5deg); }
@@ -109,7 +109,7 @@
   .tl { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; margin-top: 4mm; padding-top: 6mm; }
   .tl-line { position: absolute; left: 6mm; right: 6mm; top: 10mm; height: 1mm; background: var(--green-200); }
   .tl-item { position: relative; }
-  .tl-item i { display: block; width: 9mm; height: 9mm; border-radius: 50%; background: var(--green); border: 2mm solid #fff; box-shadow: 0 0 0 0.6mm var(--green); margin-bottom: 4mm; }
+  .tl-item i { display: block; width: 9mm; height: 9mm; border-radius: 50%; background: var(--green); border: 2mm solid #fff; outline: 0.6mm solid var(--green); margin-bottom: 4mm; }
   .tl-item b { display: block; font-size: 12.5mm; color: var(--green); }
   .tl-item span { display: block; margin-top: 1mm; font-size: 11.5mm; line-height: 1.35; color: var(--ink-2); }
 
