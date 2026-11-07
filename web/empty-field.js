@@ -196,9 +196,10 @@ function recompute() {
   const t0 = performance.now();
   CENTER = null;
   const full = evaluate(new Set(memberParcels()));
+  // 기본 목표 = 전원 참여 때의 순수익(원래 계획), 100만 원 단위로 내림
+  const defTarget = Math.floor(full.net.mid / 1e6) * 1e6;
   if (S.target === null) {
-    // 기본 목표 = 전원 참여 때의 순수익(원래 계획), 100만 원 단위로 내림
-    S.target = Math.floor(full.net.mid / 1e6) * 1e6;
+    S.target = defTarget;
     $("inTarget").value = Math.round(S.target / 1e4);
   }
   const { opts, holes, candFarms } = buildOptions();
@@ -207,9 +208,36 @@ function recompute() {
   const stage = !S.off.size ? 0 : keep.meets ? 1 : 2;
   if (!ranked.some((o) => o.key === S.sel)) S.sel = (ranked.find((o) => o.rank === 1) || ranked[0]).key;
   const sel = ranked.find((o) => o.key === S.sel);
-  VIEW = { ranked, sel, stage, holes, candFarms: candFarms || [], keep, full, ms: performance.now() - t0 };
+  VIEW = { ranked, sel, stage, holes, candFarms: candFarms || [], keep, full, defTarget, ms: performance.now() - t0 };
   renderStepper(); renderDecide(); renderRefused(); renderJudge(); renderMap(); renderOptions(); renderMachine(); renderPayout();
   if ($("sheetDlg").open) renderSheet();
+  writeHash();
+}
+
+// ---------------------------------------------------------------- 주소에 화면 상태 담기
+// 사무장이 링크 하나로 대표에게 같은 화면(거절 필지 · 조건 · 선택한 안)을 보낼 수 있게 한다.
+// 예: empty-field.html#off=12,13,40&area=50&pay=rent  (기본값인 항목은 적지 않는다)
+const pressSeg = (id, v) => $(id).querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.v === String(v))));
+function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  S.off = new Set((q.get("off") || "").split(",").map(Number).filter((id) => Number.isInteger(id) && F.parcels[id]?.member));
+  S.areaMin = q.get("area") === "50" ? 50 : 20; pressSeg("segArea", S.areaMin);
+  S.pay = ["div", "rent", "mix"].includes(q.get("pay")) ? q.get("pay") : "div"; pressSeg("segPay", S.pay);
+  const fm = Number(q.get("farm")); S.farmMin = fm >= 1 && fm <= 20 ? fm : 5; $("inFarmMin").value = S.farmMin;
+  const tg = Number(q.get("target")); S.target = q.has("target") && tg >= 0 ? tg * 1e4 : null;
+  if (S.target !== null) $("inTarget").value = tg;
+  S.sel = q.get("sel");
+}
+function writeHash() {
+  const q = new URLSearchParams();
+  if (S.off.size) q.set("off", [...S.off].join(","));
+  if (S.areaMin !== 20) q.set("area", S.areaMin);
+  if (S.farmMin !== 5) q.set("farm", S.farmMin);
+  if (S.target !== VIEW.defTarget) q.set("target", Math.round(S.target / 1e4));
+  if (S.pay !== "div") q.set("pay", S.pay);
+  if (S.off.size && S.sel !== VIEW.ranked.find((o) => o.rank === 1)?.key) q.set("sel", S.sel);
+  const h = q.toString().replace(/%2C/g, ","), url = location.pathname + location.search + (h ? `#${h}` : "");
+  if (url !== location.pathname + location.search + location.hash) history.replaceState(null, "", url);
 }
 // 조건을 바꿨을 때 다시 계산된 영역을 잠깐 강조해, 바뀐 것을 눈으로 알 수 있게 한다
 function flash(note) {
@@ -230,7 +258,7 @@ function renderStepper() {
 
 // 결론: 거절 당일 사무장이 먼저 묻는 세 가지(지원 기준 유지 · 순수익과 배당 영향 · 다음 할 일)를 맨 위에 둔다
 const pct = (a, b) => (b ? (a / b - 1) * 100 : 0);
-const signPct = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%`;
+const signPct = (v) => (Math.abs(v) < 0.05 ? "0.0%" : `${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%`);
 const STAGE = ["① 기본 필지화", "② 구멍 · 기준 충족", "③ 구멍 · 기준 미충족"];
 function renderDecide() {
   const { stage, keep, holes, full, ranked } = VIEW, e = keep.ev;
@@ -298,7 +326,22 @@ function renderRefused() {
     ? list.map((r) => `<li><span><b>${esc(r.f)}</b> ${ha(r.area)}<span class="sub">${r.n === r.total ? `필지 ${r.n}개 전체` : `필지 ${r.total}개 중 ${r.n}개`}</span></span>
         <button type="button" class="btn small" data-restore="${esc(r.f)}" aria-label="${esc(r.f)} 참여로 복구">복구</button></li>`).join("")
     : `<li class="empty">아직 거절한 농가가 없습니다. 지도에서 초록 필지를 누르세요.</li>`;
+  // 지도의 필지가 손가락보다 작은 휴대폰에서도 정확히 고르도록, 참여 농가를 이름으로도 고른다
+  const members = [...F.farms.values()].filter((f) => f.member).sort((a, b) => a.name.localeCompare(b.name, "ko", { numeric: true }));
+  $("farmPickList").innerHTML = members.map((f) => {
+    const off = f.parcels.some((id) => S.off.has(id));
+    return `<button type="button" class="pick" data-farm="${esc(f.name)}" aria-pressed="${off}">${esc(f.name)}<span class="sub">${off ? "거절 · " : ""}${ha(f.area)}</span></button>`;
+  }).join("");
 }
+function toggleFarm(name) {
+  const ids = F.farms.get(name).parcels, allOff = ids.every((id) => S.off.has(id));
+  ids.forEach((id) => (allOff ? S.off.delete(id) : S.off.add(id)));
+  S.sel = null; recompute();
+}
+const hlFarm = (name) => {
+  const ids = new Set(name ? F.farms.get(name).parcels : []);
+  document.querySelectorAll("#map [data-id]").forEach((x) => x.classList.toggle("hl", ids.has(Number(x.dataset.id))));
+};
 
 function renderJudge() {
   const o = VIEW.sel, e = o.ev;
@@ -330,10 +373,24 @@ function renderJudge() {
     <p class="hint">참고: 면적대로 나누면 평당 배당 ${won(e.per.mid)} (농가 설득용 지표, 3번 탭)</p>`;
 }
 
+// 단지 중심 보기: 참여 필지, 편입 후보가 될 수 있는 이웃 농가 전체, 보관소 이름표까지 담는 고정 범위.
+// 거절할 때마다 범위가 바뀌면 누르던 자리가 움직이므로 처음 한 번만 정한다.
+let ZOOM_BOX = null;
+function zoomBox() {
+  if (ZOOM_BOX) return ZOOM_BOX;
+  const u = F.meta.width / 1000, members = F.parcels.filter((p) => p.member), touch = new Set();
+  members.forEach((p) => p.nb.forEach((n) => { const q = F.parcels[n]; if (!q.member && !q.bg && q.owner) touch.add(q.owner); }));
+  const pts = F.parcels.filter((p) => p.member || touch.has(p.owner)).flatMap((p) => p.poly);
+  pts.push(F.depot);     // 이름표는 단지 중심 보기에서 보관소 왼쪽에 붙인다
+  const pad = 20 * u, xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+  const x0 = Math.max(0, Math.min(...xs) - pad), y0 = Math.max(0, Math.min(...ys) - pad);
+  const x1 = Math.min(F.meta.width, Math.max(...xs) + pad), y1 = Math.min(F.meta.height, Math.max(...ys) + pad);
+  return (ZOOM_BOX = [x0, y0, x1 - x0, y1 - y0].map((v) => Math.round(v)));
+}
 function renderMap() {
   const svg = $("map"), { sel, holes, candFarms } = VIEW;
   const W = F.meta.width, H = F.meta.height, u = W / 1000;     // u: 화면 크기에 맞춘 글자·기호 단위
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("viewBox", (S.zoom ? zoomBox() : [0, 0, W, H]).join(" "));
   svg.innerHTML = "";
   // 도로(OpenStreetMap)
   const gr = el("g", { "pointer-events": "none" }, svg);
@@ -360,7 +417,8 @@ function renderMap() {
     if (p.member) {
       const f = F.farms.get(p.owner);
       const scope = S.unit === "farm" ? `${p.owner}의 필지 ${f.parcels.length}개(${f.area.toFixed(1)}ha) 전체` : `이 필지(${p.area.toFixed(2)}ha)`;
-      r.setAttribute("tabindex", "0"); r.setAttribute("role", "button");
+      // 농가 단위일 때는 농가마다 한 칸만 Tab에 걸어, 필지 133칸을 하나씩 지나지 않게 한다
+      r.setAttribute("tabindex", S.unit === "parcel" || f.parcels[0] === p.id ? "0" : "-1"); r.setAttribute("role", "button");
       r.setAttribute("aria-label", `${p.owner} 필지 ${p.area.toFixed(2)}ha, ${off ? "거절됨" : "참여 중"}. 누르면 ${scope}를 ${off ? "복구" : "해제"}`);
     }
     const tt = el("title", {}, r);
@@ -373,7 +431,7 @@ function renderMap() {
   el("polyline", { points: pts, fill: "none", stroke: "var(--ink)", "stroke-width": 1.8, "vector-effect": "non-scaling-stroke", "stroke-dasharray": "6 4", "stroke-linejoin": "round", "pointer-events": "none", opacity: 0.85 }, svg);
   const [dx, dy] = F.depot, ds = 22 * u;
   el("rect", { x: dx - ds / 2, y: dy - ds / 2, width: ds, height: ds, fill: "var(--ink)", "pointer-events": "none" }, svg);
-  const t = el("text", { x: dx + ds, y: dy + 7 * u, "font-size": 20 * u, fill: "var(--ink)", "font-weight": 600, "pointer-events": "none", "paint-order": "stroke", stroke: "#fff", "stroke-width": 4 * u }, svg); t.textContent = "농기계 보관소";
+  const t = el("text", { x: S.zoom ? dx - ds : dx + ds, "text-anchor": S.zoom ? "end" : "start", y: dy + 7 * u, "font-size": 20 * u, fill: "var(--ink)", "font-weight": 600, "pointer-events": "none", "paint-order": "stroke", stroke: "#fff", "stroke-width": 4 * u }, svg); t.textContent = "농기계 보관소";
 
   const e = sel.ev;
   const dKm = (e.routeKm - VIEW.full.routeKm) * P.OPS;
@@ -391,9 +449,9 @@ function renderOptions() {
     return `<tr class="opt ${isSel ? "sel" : ""} ${o.meets ? "" : "dis"}" data-key="${esc(o.key)}" tabindex="0" aria-selected="${isSel}">
       <td>${o.rank ? `<span class="rank">${o.rank}</span>` : "–"}</td>
       <td>${esc(o.name)}<span class="sub">${esc(o.sub)}</span>${o.meets ? "" : `<span class="why">${esc(o.why)}</span>`}</td>
-      <td class="num">${e.area.toFixed(1)}</td>
-      <td class="num">${o.persuade}명</td>
-      <td class="num" title="${krw(e.net.mid)}"><b>${eokS(e.net.mid)}</b><span class="sub">${(e.net.lo / 1e8).toFixed(2)}~${eokS(e.net.hi)}</span><span class="sub">평당 ${won(e.per.mid)}</span></td>
+      <td class="num" data-label="면적">${e.area.toFixed(1)}<span class="unit-m">ha</span></td>
+      <td class="num" data-label="설득">${o.persuade}명</td>
+      <td class="num" data-label="순수익(연)" title="${krw(e.net.mid)}"><b>${eokS(e.net.mid)}</b><span class="sub">${(e.net.lo / 1e8).toFixed(2)}~${eokS(e.net.hi)}</span><span class="sub">평당 ${won(e.per.mid)}</span></td>
       <td>${o.meets ? chip(o.v) : `<span class="chip na">기준 미달</span>`}</td>
     </tr>`;
   }).join("");
@@ -607,6 +665,13 @@ function init() {
     $("segUnit").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
     S.unit = b.dataset.v; S.hover = null; renderMap();
   });
+  // 휴대폰에서는 필지가 손가락보다 작아지므로 단지 중심으로 크게 연다
+  const setZoom = (on) => { S.zoom = on; $("segZoom").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String((x.dataset.v === "1") === on))); };
+  setZoom(matchMedia("(max-width: 760px)").matches);
+  $("segZoom").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    setZoom(b.dataset.v === "1"); renderMap();
+  });
   $("optTable").addEventListener("click", (ev) => {
     if (ev.target.closest("#btnMore")) { S.showAll = !S.showAll; renderOptions(); $("btnMore")?.focus(); return; }
     const tr = ev.target.closest("tr[data-key]"); if (tr) { S.sel = tr.dataset.key; recompute(); }
@@ -626,6 +691,13 @@ function init() {
     S.sel = null; recompute(); flash(`${f} 복구`);
     ($("refused").querySelector("[data-restore]") || $("btnReset")).focus();
   });
+  $("farmPickList").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-farm]"); if (!b) return;
+    const f = b.dataset.farm; toggleFarm(f);
+    $("farmPickList").querySelector(`[data-farm="${CSS.escape(f)}"]`)?.focus();
+  });
+  ["mouseover", "focusin"].forEach((t) => $("farmPickList").addEventListener(t, (ev) => hlFarm(ev.target.closest("[data-farm]")?.dataset.farm)));
+  $("farmPickList").addEventListener("mouseleave", () => hlFarm(null));
   $("decide").addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-pick]"); if (!b) return;
     S.sel = b.dataset.pick; selectTab(1); recompute();
@@ -634,11 +706,23 @@ function init() {
   $("btnSheet").addEventListener("click", () => { renderSheet(); $("sheetDlg").showModal(); });
   $("btnClose").addEventListener("click", () => $("sheetDlg").close());
   $("btnPrint").addEventListener("click", () => window.print());
+  $("btnCopy").addEventListener("click", async () => {
+    let ok = true;
+    try { await navigator.clipboard.writeText(location.href); } catch { ok = false; }
+    const b = $("btnCopy");
+    $("copyNote").textContent = ok ? "지금 화면의 링크를 복사했습니다" : "복사하지 못했습니다. 주소창의 주소를 복사해 보내세요";
+    b.textContent = ok ? "복사했습니다 ✓" : "복사 실패";
+    clearTimeout(b.resetT); b.resetT = setTimeout(() => { b.textContent = "링크 복사"; }, 2500);
+  });
+  // 건너뛰기 링크가 주소의 #를 바꾸면 화면 상태로 잘못 읽으므로, 이동만 하고 주소는 그대로 둔다
+  document.querySelector(".skip").addEventListener("click", (ev) => { ev.preventDefault(); $("results").focus(); });
+  addEventListener("hashchange", () => { if (location.hash && !location.hash.includes("=")) return; readHash(); recompute(); });
   $("segSheet").addEventListener("click", (ev) => {
     const b = ev.target.closest("button"); if (!b) return;
     $("segSheet").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
     S.sheet = b.dataset.v; renderSheet();
   });
+  readHash();
   recompute();
 }
 document.addEventListener("DOMContentLoaded", init);
