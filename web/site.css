@@ -13,6 +13,7 @@
   --mf-on-deep-muted: #c4dccd;  /* 바닥글의 보조 글자 (9.9:1) */
   --mf-on-deep-line: rgba(255, 255, 255, .16);
   --mf-green-soft: #daf7e4;
+  --mf-green-200: #a9f2c5;
   --mf-green-tint: #effbf3;
   --mf-sprout: #3f9f60;         /* 새순 연두 */
   --mf-sprout-line: #2e9360;    /* 지도의 법인 단지 테두리 (옅은 연두 위 3.4:1) */
@@ -44,17 +45,21 @@
   /* 글꼴: 본문·제목 모두 Wanted Sans, 숫자는 같은 폭(tnum) */
   --mf-font: "Wanted Sans Variable", "Wanted Sans", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --mf-tracking-display: -0.025em;
-  /* 머리글 띠(배너): 브랜드 초록 바탕 + 흰 로고(브랜드 가이드의 'PRIMARY · ONE COLOUR'). 흰 글자 5.3:1.
-     지금 화면은 흰 알약 + 초록 글자로 표시한다(반투명 흰 바탕은 흰 글자가 3.9:1로 떨어져 쓰지 않는다) */
-  --mf-bar-bg: var(--mf-green);            /* 그라데이션을 못 그릴 때의 단색 */
-  /* 위 밝은 초록 → 아래 진한 초록(아래 경계선과 이어진다). 가장 밝은 위쪽 #2a834a에서도 흰 글자 4.7:1.
-     새순 연두(#3f9f60)는 흰 글자가 3.3:1이라 넣지 않는다 */
-  --mf-bar-gradient: linear-gradient(180deg, #2a834a 0%, var(--mf-green) 55%, #105433 100%);
-  --mf-bar-ink: var(--mf-on-deep);
-  --mf-bar-pill: var(--mf-surface);
-  --mf-bar-pill-ink: var(--mf-green-strong);
-  --mf-bar-line: rgba(255, 255, 255, .7);
-  --mf-bar-edge: var(--mf-green-strong);   /* 띠 아래 경계 */
+  /* 머리글 띠(배너): 연한 초록 그라데이션(위 green-100 → 아래 green-200) + 컬러 로고(브랜드 가이드 'PAPER · FULL COLOUR').
+     흰 글자는 #2a834a보다 밝은 바탕에서 4.5:1 아래로 떨어지므로, 연한 띠에서는 진한 초록 글자를 쓴다(6.9:1).
+     지금 화면은 들녘 초록 알약 + 흰 글자(5.3:1). 띠와 페이지 바탕의 차이가 작아 아래에 새순 연두 경계선을 둔다 */
+  --mf-bar-bg: var(--mf-green-soft);       /* 그라데이션을 못 그릴 때의 단색 */
+  --mf-bar-gradient: linear-gradient(180deg, var(--mf-green-soft) 0%, var(--mf-green-200) 100%);
+  --mf-bar-edge: var(--mf-sprout);
+  --mf-bar-ink: var(--mf-green-strong);
+  --mf-bar-muted: var(--mf-ink-muted);
+  --mf-bar-line: var(--mf-green);          /* 글자 크기 버튼 테두리 (4.1:1) */
+  --mf-bar-pill: var(--mf-green);
+  --mf-bar-pill-ink: var(--mf-on-deep);
+  --mf-bar-focus: var(--mf-green);
+  --mf-bar-tab: var(--mf-ground);          /* 휴대폰: 지금 화면 탭을 페이지 바탕색으로 연다 */
+  --mf-logo-color: block;                  /* 컬러 로고 / 흰 로고 중 어느 쪽을 보일지 */
+  --mf-logo-white: none;
   /* 화면 제목 줄의 색. 어두운 화면을 지원하는 페이지(style.css)가 이 값만 바꾼다 */
   --mf-chrome-ink: var(--mf-ink);
   --mf-chrome-muted: var(--mf-ink-muted);
@@ -78,9 +83,9 @@ main:focus { outline: none; }
 .site-bar { display: flex; align-items: center; gap: 8px 28px; flex-wrap: wrap; padding: 10px 20px; min-height: 64px; }
 .site-logo { display: inline-flex; align-items: center; min-height: 44px; border-radius: 6px; }
 .site-logo img { height: 30px; width: auto; }
-/* 띠가 초록이라 머리글에는 흰 로고를 쓴다 */
-.site-header .logo-on-light { display: none; }
-.site-header .logo-on-dark { display: block; }
+/* 밝은 띠에는 컬러 로고, 어두운 띠(어두운 화면)에는 흰 로고 */
+.site-header .logo-on-light { display: var(--mf-logo-color); }
+.site-header .logo-on-dark { display: var(--mf-logo-white); }
 .site-nav ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
 .site-nav a {
   display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px;
@@ -91,7 +96,7 @@ main:focus { outline: none; }
 /* 지금 화면: 색과 밑줄을 함께 써서 색만으로 구분하지 않는다 */
 .site-nav a[aria-current="page"] { color: var(--mf-bar-pill-ink); background: var(--mf-bar-pill); font-weight: 800; text-decoration: none; }
 .fs-control { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-.fs-label { color: var(--mf-bar-ink); font-size: 0.9375rem; }
+.fs-label { color: var(--mf-bar-muted); font-size: 0.9375rem; }
 .fs-control button {
   min-width: 44px; min-height: 44px; padding: 0 6px; border: 1px solid var(--mf-bar-line); border-radius: 8px;
   background: transparent; color: var(--mf-bar-ink); font-family: inherit; font-weight: 700; line-height: 1; cursor: pointer;
@@ -103,8 +108,9 @@ main:focus { outline: none; }
 .fs-control button[data-fs-set="2"] { font-size: 21px; }
 .fs-control button:hover { border-color: var(--mf-bar-ink); }
 .fs-control button[aria-pressed="true"] { background: var(--mf-bar-pill); border-color: var(--mf-bar-pill); color: var(--mf-bar-pill-ink); }
-/* 초록 띠와 바닥글 위에서는 흰 포커스 테두리, 밝은 바탕에서는 초록 */
-.site-header :focus-visible, .site-footer :focus-visible { outline: 3px solid var(--mf-on-deep); outline-offset: 2px; }
+/* 포커스 테두리: 머리글은 띠 색에 맞춰, 바닥글은 흰색, 밝은 바탕은 초록 */
+.site-header :focus-visible { outline: 3px solid var(--mf-bar-focus); outline-offset: 2px; }
+.site-footer :focus-visible { outline: 3px solid var(--mf-on-deep); outline-offset: 2px; }
 .page-head :focus-visible { outline: 3px solid var(--mf-chrome-accent); outline-offset: 2px; }
 
 /* 화면 제목 줄: 어느 화면인지(작은 이름) · 제목 · 한 줄 설명, 오른쪽에 화면별 도구 */
@@ -139,7 +145,7 @@ main:focus { outline: none; }
   .site-nav a { padding: 0 4px; border-radius: 8px 8px 0 0; font-size: 0.9375rem; text-align: center; }
   .site-header { border-bottom-width: 0; }
   /* 지금 화면 탭은 페이지 바탕색으로 열어, 아래 내용과 이어진 것처럼 보이게 한다 */
-  .site-nav a[aria-current="page"] { background: var(--mf-ground); }
+  .site-nav a[aria-current="page"] { background: var(--mf-bar-tab); color: var(--mf-bar-ink); box-shadow: inset 0 3px 0 var(--mf-bar-pill); }
   .page-head { padding: 16px 12px 4px; }
   .page-head h1 { font-size: 1.5rem; }
   .site-footer-in { grid-template-columns: 1fr; padding: 24px 12px 12px; gap: 20px; }
