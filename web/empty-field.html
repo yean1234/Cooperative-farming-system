@@ -32,10 +32,10 @@
   <details class="toggle howto">
     <summary>사용 방법 — 지도에서 거절한 농가를 누르면, 빼고 갈지 메울지를 맨 위에서 바로 알려 줍니다</summary>
     <ol class="steps">
-      <li><b>거절 농가를 누릅니다.</b> 지도에서 초록 필지를 누르면 그 농가의 필지가 모두 빠집니다(거절은 보통 농가 단위로 일어나므로). 한 칸만 빼 보고 싶으면 지도 위 "해제 단위"를 <b>필지 한 칸</b>으로 바꿉니다. 다시 누르거나 왼쪽 "거절 기록"에서 복구합니다.</li>
+      <li><b>거절 농가를 누릅니다.</b> 지도에서 초록 필지를 누르면 그 농가의 필지가 모두 빠집니다(거절은 보통 농가 단위로 일어나므로). 한 칸만 빼 보고 싶으면 지도 위 "해제 단위"를 <b>필지 한 칸</b>으로 바꿉니다. 다시 누르거나 왼쪽 "거절 기록"에서 복구합니다. 휴대폰에서 필지가 작으면 "거절 기록"의 <b>농가 이름으로 고르기</b>를 씁니다.</li>
       <li><b>맨 위 결론을 봅니다.</b> 빼고 가도 되는지, 법인 순수익과 남은 조합원 평당 배당이 얼마나 바뀌는지, 1순위 대안이 무엇인지 한 줄로 나옵니다.</li>
       <li><b>대안을 비교합니다.</b> 오른쪽 1번 탭 표에서 대안을 누르면 지도에 편입 땅과 트랙터 경로가 겹쳐 보입니다.</li>
-      <li><b>설명 자료를 뽑습니다.</b> 오른쪽 위 <b>설명 자료 만들기</b>로 대표 보고용 한 장, 남은 농가 설명용 한 장을 인쇄합니다.</li>
+      <li><b>설명 자료를 뽑습니다.</b> 오른쪽 위 <b>설명 자료 만들기</b>로 대표 보고용 한 장, 남은 농가 설명용 한 장을 인쇄합니다. <b>링크 복사</b>를 누르면 거절 농가와 조건이 담긴 지금 화면을 그대로 보낼 수 있습니다.</li>
       <li><b>조건을 맞춥니다.</b> 목표 순수익, 지원 면적 기준(20ha 현행 · 50ha 상향 검토), 지급 방식은 왼쪽에서 바꿉니다.</li>
     </ol>
   </details>
@@ -71,9 +71,14 @@
         <p class="recalc" id="recalc" aria-live="polite">조건을 바꾸면 바로 다시 계산됩니다</p>
       </section>
 
-      <section class="card">
+      <section class="card refused-card">
         <h2>거절 기록 <span class="muted" id="refusedCount"></span></h2>
         <ul class="refused" id="refused"></ul>
+        <details class="toggle" id="farmPick">
+          <summary>농가 이름으로 고르기</summary>
+          <p class="hint">거절한 농가를 누르면 그 농가의 필지가 모두 빠집니다. 다시 누르면 돌아옵니다.</p>
+          <div class="farm-pick" id="farmPickList" role="group" aria-label="참여 농가"></div>
+        </details>
       </section>
 
       <section class="card" aria-live="polite">
@@ -96,15 +101,25 @@
     <section class="col map" aria-label="들녘 지도">
       <div class="map-head">
         <h2>들녘 지도 <span class="muted" id="mapMeta">포항 흥해 실측 필지</span></h2>
-        <div class="unit">
-          <span class="muted">해제 단위</span>
-          <div class="seg" id="segUnit" role="radiogroup" aria-label="지도를 누를 때 해제되는 단위">
-            <button type="button" data-v="farm" aria-pressed="true">농가 전체</button>
-            <button type="button" data-v="parcel" aria-pressed="false">필지 한 칸</button>
+        <div class="map-tools">
+          <div class="unit">
+            <span class="muted">해제 단위</span>
+            <div class="seg" id="segUnit" role="radiogroup" aria-label="지도를 누를 때 해제되는 단위">
+              <button type="button" data-v="farm" aria-pressed="true">농가 전체</button>
+              <button type="button" data-v="parcel" aria-pressed="false">필지 한 칸</button>
+            </div>
+          </div>
+          <div class="unit">
+            <span class="muted">보기</span>
+            <div class="seg" id="segZoom" role="radiogroup" aria-label="지도 보기 범위">
+              <button type="button" data-v="1" aria-pressed="false">단지 중심</button>
+              <button type="button" data-v="0" aria-pressed="true">주변까지</button>
+            </div>
           </div>
         </div>
       </div>
       <p class="hover-info" id="hoverInfo" aria-live="polite"></p>
+      <a class="skip" href="#results">지도 건너뛰고 대안 비교로</a>
       <div class="map-wrap">
         <svg id="map" role="img" aria-label="필지 지도"></svg>
       </div>
@@ -122,7 +137,7 @@
     </section>
 
     <!-- 오른쪽: 핵심 활동 1·2·3 -->
-    <section class="col right" aria-label="결과">
+    <section class="col right" id="results" tabindex="-1" aria-label="결과">
       <div class="tabs" role="tablist">
         <button type="button" role="tab" id="tab1" aria-controls="pane1" aria-selected="true">1 대체 필지 추천</button>
         <button type="button" role="tab" id="tab2" aria-controls="pane2" aria-selected="false">2 기계비 · 경로</button>
@@ -211,9 +226,11 @@
       </div>
       <div class="dlg-actions">
         <button type="button" class="btn primary" id="btnPrint">인쇄</button>
+        <button type="button" class="btn" id="btnCopy">링크 복사</button>
         <button type="button" class="btn" id="btnClose">닫기</button>
       </div>
     </div>
+    <p class="sr-only" id="copyNote" role="status"></p>
     <article class="sheet" id="sheet"></article>
   </dialog>
 
