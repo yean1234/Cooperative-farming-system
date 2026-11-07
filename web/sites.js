@@ -215,7 +215,7 @@ function renderLegend() {
   if (state.selected) box.append(legendItem(P.s2, `선택한 단지 ${state.selected}`));
   box.append(legendItem(P.deemph2, "조건은 맞지만 단지에 안 들어간 필지"));
   box.append(legendItem(P.deemph, "제외 필지(경사·과수·시설 등)"));
-  if ($("showTruth").checked) box.append(legendItem(P.s3, "정답 단지 경계(가상)", true));
+  if ($("showTruth").checked) box.append(legendItem(P.s3, "가상 정답 경계(검증용)", true));
   box.append(h("div", { class: "note", text: "필지를 누르면 포함·제외 근거를 보여 줍니다." }));
 }
 function toggleBasemap(on) {
@@ -409,6 +409,9 @@ function setRegion(reg) {
   renderAllResults();
   clear($("validation")).append(h("p", { class: "empty", text: reg.meta.truth_complexes ? "정답 단지 재현(F1·IoU), 베이스라인 비교, 민감도를 계산합니다." : "정답 단지 속성이 없어 재현 검증은 할 수 없습니다." }));
   $("btnValidate").disabled = !reg.meta.truth_complexes;
+  // 정답 경계는 가상 읍면에만 있다. 실측 지도에서는 체크해도 아무것도 안 그려지므로 숨긴다
+  $("truthToggle").hidden = !reg.meta.truth_complexes;
+  if (!reg.meta.truth_complexes) $("showTruth").checked = false;
   const m = reg.meta;
   setStatus(`${m.name} · 필지 ${nf0.format(m.n_parcels)}개 · ${nf1.format(m.total_area_ha)}ha`);
   const used = (m.sources || []).filter((s) => s.status && s.status.used).map((s) => s.name);

@@ -3,20 +3,46 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>빈 필드 시뮬레이터</title>
-  <meta name="description" content="공동영농 참여를 거절한 농가가 생겼을 때, 지원 기준과 배당금이 어떻게 바뀌는지와 대체 필지를 바로 보여 주는 시뮬레이터">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233f8f5a'/%3E%3Crect x='7' y='7' width='8' height='8' fill='%23fff'/%3E%3Crect x='17' y='7' width='8' height='8' fill='%23fff'/%3E%3Crect x='7' y='17' width='8' height='8' fill='%23fff'/%3E%3Crect x='17' y='17' width='8' height='8' fill='%23c4492d'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ayaan-fonts/Freesentation@77fabb856ca65471053a54e56490802b703d23e6/fonts/webfonts/Freesentation-dynamic-subset.css">
+  <title>거절 대응 · 모두의 농장</title>
+  <meta name="description" content="공동영농 참여를 거절한 농가가 생겼을 때, 지원 기준과 배당금이 어떻게 바뀌는지와 대체 필지를 바로 보여 주는 빈 필드 시뮬레이터">
+  <link rel="icon" href="brand/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="brand/favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="brand/app-icon-512.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css">
+  <link rel="stylesheet" href="site.css">
   <link rel="stylesheet" href="empty-field.css">
+  <script src="site.js"></script>
 </head>
 <body>
-  <header class="top">
-    <div class="brand">
-      <h1>빈 필드 시뮬레이터</h1>
-      <nav class="nav" aria-label="다른 화면">
-        <a href="index.html">후보단지</a>
-        <a href="operations.html">단지 운영 설계</a>
+  <a class="skip-main" href="#main">본문 바로가기</a>
+  <header class="site-header">
+    <div class="site-bar">
+      <a class="site-logo" href="index.html" aria-label="모두의 농장 처음 화면">
+        <img class="logo-on-light" src="brand/logo-lockup.svg" alt="모두의 농장" width="174" height="30">
+        <img class="logo-on-dark" src="brand/logo-lockup-white.svg" alt="모두의 농장" width="174" height="30">
+      </a>
+      <nav class="site-nav" aria-label="화면">
+        <ul>
+          <li><a href="index.html">후보단지 찾기</a></li>
+          <li><a href="empty-field.html" aria-current="page">거절 대응</a></li>
+          <li><a href="operations.html">단지 운영 설계</a></li>
+        </ul>
       </nav>
+      <div class="fs-control" role="group" aria-label="글자 크기">
+        <span class="fs-label" aria-hidden="true">글자 크기</span>
+        <button type="button" data-fs-set="0" aria-label="글자 크기 보통">가</button>
+        <button type="button" data-fs-set="1" aria-label="글자 크기 크게">가</button>
+        <button type="button" data-fs-set="2" aria-label="글자 크기 더 크게">가</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+  <div class="page-head">
+    <div class="page-title">
+      <p class="eyebrow">거절 대응</p>
+      <h1>빈 필드 시뮬레이터</h1>
+      <p class="page-desc">참여를 거절한 농가가 생겼을 때, 빼고 갈지 메울지 바로 판정합니다.</p>
     </div>
     <ol class="stepper" id="stepper" aria-label="현재 상황">
       <li data-stage="0">① 기본 필지화</li>
@@ -24,10 +50,10 @@
       <li data-stage="2">③ 구멍 · 기준 미충족</li>
     </ol>
     <div class="top-actions">
-      <button type="button" class="btn ghost" id="btnReset">처음 상태로</button>
+      <button type="button" class="btn" id="btnReset">처음 상태로</button>
       <button type="button" class="btn primary" id="btnSheet">설명 자료 만들기</button>
     </div>
-  </header>
+  </div>
 
   <details class="toggle howto">
     <summary>사용 방법 — 지도에서 거절한 농가를 누르면, 빼고 갈지 메울지를 맨 위에서 바로 알려 줍니다</summary>
@@ -43,7 +69,7 @@
   <!-- 결론: 사무장이 거절 당일 가장 먼저 묻는 "빼고 가도 되나, 메워야 하나" -->
   <section class="decide" id="decide" aria-live="polite" aria-label="거절 영향 결론"></section>
 
-  <main class="layout">
+  <div class="layout">
     <!-- 왼쪽: 목표와 판정 -->
     <aside class="col left" aria-label="목표와 판정">
       <section class="card">
@@ -189,9 +215,9 @@
         </details>
       </div>
     </section>
-  </main>
+  </div>
 
-  <footer class="foot">
+  <section class="notes" aria-label="근거 자료와 한계">
     <details class="toggle">
       <summary>근거 자료</summary>
       <ul class="list">
@@ -214,6 +240,36 @@
         <li>흉년은 총수입만 줄이고 생산비는 그대로 둡니다. 재해보험 보전과 직불금은 넣지 않았습니다.</li>
       </ul>
     </details>
+  </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-in">
+      <div class="sf-brand">
+        <img src="brand/logo-lockup-white.svg" alt="모두의 농장" width="162" height="28">
+        <p>공동영농 단지 재설계·배당 산정 소프트웨어.<br>거절로 생긴 빈 땅을 지도 위에서 바로 다시 설계합니다.</p>
+      </div>
+      <nav class="sf-nav" aria-label="화면 바로가기">
+        <h2>화면</h2>
+        <ul>
+          <li><a href="index.html">후보단지 찾기</a></li>
+          <li><a href="empty-field.html">거절 대응 (빈 필드 시뮬레이터)</a></li>
+          <li><a href="operations.html">단지 운영 설계</a></li>
+        </ul>
+      </nav>
+      <div class="sf-data">
+        <h2>근거 데이터</h2>
+        <ul>
+          <li>팜맵 필지 경계 · 흙토람 토양 · OpenStreetMap 도로</li>
+          <li>국가데이터처 논벼 생산비조사 (2020~2025년산)</li>
+          <li>농림축산식품부 공동영농 확산 지원사업</li>
+        </ul>
+      </div>
+    </div>
+    <div class="sf-base">
+      <p>화면의 금액은 공개 통계로 계산한 추정치이며, 약속된 금액이 아닙니다.</p>
+      <p>포스텍–한동대 Mini TeX-Corps · 물개 팀 · © 2026 모두의 농장</p>
+    </div>
   </footer>
 
   <!-- 설명 자료: 대표(결정권자) 보고용과 남은 농가 설명용 한 장 -->

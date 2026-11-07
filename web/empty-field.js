@@ -296,7 +296,7 @@ function renderDecide() {
       <div class="tile ${areaOk && farmOk ? "ok" : "no"}">
         <div class="k">지원 기준${stage ? " · 그대로 갈 때" : ""}</div>
         <div class="n">${areaOk && farmOk ? "충족 ✓" : "미충족 ✗"}</div>
-        <div class="d"><span class="${areaOk ? "pass" : "fail"}">면적 ${ha(e.area)} / ${S.areaMin}ha</span> · <span class="${farmOk ? "pass" : "fail"}">농가 ${e.farms} / ${S.farmMin}명</span></div>
+        <div class="d"><span class="${areaOk ? "pass" : "fail"}">면적 ${ha(e.area)} / ${S.areaMin}ha</span><br><span class="${farmOk ? "pass" : "fail"}">농가 ${e.farms}명 / ${S.farmMin}명</span></div>
       </div>
       <div class="tile">
         <div class="k">법인 순수익 (연)${stage ? " · 그대로 갈 때" : ""}</div>
@@ -368,7 +368,7 @@ function renderJudge() {
       <div class="dot" style="left:${pos(e.net.mid)}%"></div>
       <div class="tgt" style="left:${pos(S.target)}%" title="목표"></div>
     </div>
-    <div class="scale"><span>${krw(e.net.lo)}</span><span><b>기준 ${krw(e.net.mid)}</b></span><span>${krw(e.net.hi)}</span></div>
+    <div class="scale"><span>${eokS(e.net.lo)}원</span><span><b>기준 ${eokS(e.net.mid)}원</b></span><span>${eokS(e.net.hi)}원</span></div>
     <p class="hint">검은 선 = 목표 ${krw(S.target)} · 전원 참여 기준선 ${krw(VIEW.full.net.mid)}</p>
     <p class="hint">참고: 면적대로 나누면 평당 배당 ${won(e.per.mid)} (농가 설득용 지표, 3번 탭)</p>`;
 }
@@ -394,22 +394,27 @@ function renderMap() {
   svg.innerHTML = "";
   // 도로(OpenStreetMap)
   const gr = el("g", { "pointer-events": "none" }, svg);
-  F.roads.forEach((line) => el("polyline", { points: line.map((q) => q.join(",")).join(" "), fill: "none", stroke: "#cbc5b2", "stroke-width": 3, "vector-effect": "non-scaling-stroke", "stroke-linecap": "round" }, gr));
+  F.roads.forEach((line) => el("polyline", { points: line.map((q) => q.join(",")).join(" "), fill: "none", stroke: "var(--road)", "stroke-width": 3, "vector-effect": "non-scaling-stroke", "stroke-linecap": "round" }, gr));
   const exIn = new Set(sel.exIn || []), exOut = new Set(sel.exOut || []), add = new Set(sel.addIds || []);
   const candSet = new Set();
   candFarms.forEach((f) => F.farms.get(f).parcels.forEach((id) => candSet.add(id)));
   const holeSet = new Set(holes);
   const hl = S.hover !== null ? hoverGroup(S.hover) : new Set();
+  // 거절 땅 빗금: 색을 구분하기 어려운 사람도 알아보게 한다
+  const pat = el("pattern", { id: "hatchHole", patternUnits: "userSpaceOnUse", width: 9 * u, height: 9 * u, patternTransform: "rotate(45)" }, el("defs", {}, svg));
+  el("rect", { width: 9 * u, height: 9 * u, fill: "var(--hole-soft)" }, pat);
+  el("line", { x1: 0, y1: 0, x2: 0, y2: 9 * u, stroke: "var(--hole)", "stroke-width": 3 * u, opacity: 0.55 }, pat);
   const g = el("g", {}, svg), gl = el("g", { "pointer-events": "none" }, svg);
   F.parcels.forEach((p) => {
-    let fill = "var(--other)", stroke = "#c9c6bb", dash = "", cls = "parcel", label = "", sw = 1;
-    if (p.bg) { fill = "#f3f2ee"; stroke = "#dedbd2"; }
+    // 색은 뜻으로 나눈다: 법인 단지 연두, 거절 빨강, 교환 파랑, 들어오는(편입) 땅 볏짚 노랑. ink는 지도 위 글자색
+    let fill = "var(--other)", stroke = "var(--other-line)", ink = "", dash = "", cls = "parcel", label = "", sw = 1;
+    if (p.bg) { fill = "var(--bg-parcel)"; stroke = "var(--bg-parcel-line)"; }
     if (p.member && !holeSet.has(p.id)) { fill = "var(--coop-soft)"; stroke = "var(--coop)"; cls += " member"; }
-    if (holeSet.has(p.id)) { fill = "var(--hole-soft)"; stroke = "var(--hole)"; cls += " member"; label = "거절"; sw = 2; }
-    if (exIn.has(p.id)) { fill = "var(--ex-soft)"; stroke = "var(--ex)"; label = "교환"; sw = 2; }
-    if (exOut.has(p.id)) { fill = "#fff"; stroke = "var(--ex)"; dash = "4 3"; label = "넘김"; sw = 2; }
-    if (!p.member && candSet.has(p.id) && !add.has(p.id)) { fill = "#fff"; stroke = "var(--cand)"; dash = "4 3"; sw = 1.5; }
-    if (add.has(p.id)) { fill = "var(--cand-soft)"; stroke = "var(--cand)"; label = "편입"; sw = 2; }
+    if (holeSet.has(p.id)) { fill = "url(#hatchHole)"; stroke = "var(--hole)"; ink = "var(--hole-strong)"; cls += " member"; label = "거절"; sw = 2; }
+    if (exIn.has(p.id)) { fill = "var(--ex-soft)"; stroke = "var(--ex)"; ink = "var(--ex-text)"; label = "교환"; sw = 2; }
+    if (exOut.has(p.id)) { fill = "var(--card)"; stroke = "var(--ex)"; ink = "var(--ex-text)"; dash = "4 3"; label = "넘김"; sw = 2; }
+    if (!p.member && candSet.has(p.id) && !add.has(p.id)) { fill = "var(--add-tint)"; stroke = "var(--add)"; dash = "4 3"; sw = 1.5; }
+    if (add.has(p.id)) { fill = "var(--add-soft)"; stroke = "var(--add)"; ink = "var(--add-text)"; label = "편입"; sw = 2.5; }
     if (hl.has(p.id)) cls += " hl";
     const r = el("polygon", { points: p.poly.map((q) => q.join(",")).join(" "), fill, stroke, "stroke-width": sw, "vector-effect": "non-scaling-stroke", class: cls, "data-id": p.id }, g);
     if (dash) r.setAttribute("stroke-dasharray", dash);
@@ -424,14 +429,14 @@ function renderMap() {
     const tt = el("title", {}, r);
     tt.textContent = p.member ? `${p.owner}(추정) · ${p.area.toFixed(2)}ha · ${off ? "거절" : "참여"}`
       : p.bg ? `${p.use} · 편입 대상 아님` : `${p.owner}(추정) · 비참여 논 ${p.area.toFixed(2)}ha`;
-    if (label && p.area >= 0.12) { const t = el("text", { x: cx(p), y: cy(p) + 6 * u, "text-anchor": "middle", "font-size": 17 * u, "font-weight": 700, fill: stroke }, gl); t.textContent = label; }
+    if (label && p.area >= 0.12) { const t = el("text", { x: cx(p), y: cy(p) + 6 * u, "text-anchor": "middle", "font-size": 17 * u, "font-weight": 700, fill: ink || stroke }, gl); t.textContent = label; }
   });
   // 작업 경로
   const pts = sel.ev.path.map((q) => q.join(",")).join(" ");
   el("polyline", { points: pts, fill: "none", stroke: "var(--ink)", "stroke-width": 1.8, "vector-effect": "non-scaling-stroke", "stroke-dasharray": "6 4", "stroke-linejoin": "round", "pointer-events": "none", opacity: 0.85 }, svg);
   const [dx, dy] = F.depot, ds = 22 * u;
   el("rect", { x: dx - ds / 2, y: dy - ds / 2, width: ds, height: ds, fill: "var(--ink)", "pointer-events": "none" }, svg);
-  const t = el("text", { x: S.zoom ? dx - ds : dx + ds, "text-anchor": S.zoom ? "end" : "start", y: dy + 7 * u, "font-size": 20 * u, fill: "var(--ink)", "font-weight": 600, "pointer-events": "none", "paint-order": "stroke", stroke: "#fff", "stroke-width": 4 * u }, svg); t.textContent = "농기계 보관소";
+  const t = el("text", { x: S.zoom ? dx - ds : dx + ds, "text-anchor": S.zoom ? "end" : "start", y: dy + 7 * u, "font-size": 20 * u, fill: "var(--ink)", "font-weight": 600, "pointer-events": "none", "paint-order": "stroke", stroke: "var(--card)", "stroke-width": 4 * u }, svg); t.textContent = "농기계 보관소";
 
   const e = sel.ev;
   const dKm = (e.routeKm - VIEW.full.routeKm) * P.OPS;
