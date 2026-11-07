@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>모이는 들녘 swatches</title>
+<style>
+  :root { --ink:#16181d; --muted:#5b6170; --line:#e3e5ea; --paper:#ffffff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+    font:14px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  main { max-width:1180px; margin:0 auto; padding:48px 40px 64px; }
+  header { display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    border-bottom:1px solid var(--line); padding-bottom:20px; margin-bottom:32px; }
+  h1 { font-size:34px; letter-spacing:-0.02em; margin:0; }
+  h2 { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:40px 0 14px; }
+  header p { margin:6px 0 0; color:var(--muted); max-width:640px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
+  .muted { color:var(--muted); }
+  .audit { margin:0; font-size:13px; color:var(--muted); white-space:nowrap; }
+  .brands { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:20px; }
+  .brand { margin:0; border:1px solid var(--line); border-radius:14px; overflow:hidden; break-inside:avoid; }
+  .brand .chip { height:150px; padding:16px; display:flex; justify-content:space-between; align-items:flex-end;
+    font-weight:600; font-size:16px; }
+  .brand em { font-style:normal; font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.8; }
+  .ext-chip { display:grid; grid-template-columns:1fr 1fr; height:120px; }
+  .ext-half { padding:12px; display:flex; flex-direction:column; justify-content:space-between; font-size:12px; }
+  figcaption { display:flex; flex-direction:column; gap:3px; padding:14px 16px; font-size:12.5px; }
+  figcaption b { font-size:15px; }
+  .scale { display:grid; grid-template-columns:120px 1fr; gap:12px; align-items:stretch; margin-bottom:8px;
+    break-inside:avoid; }
+  .scale-name { font-weight:600; display:flex; flex-direction:column; justify-content:center; }
+  .scale-name small { font-weight:400; color:var(--muted); font-size:11px; }
+  .steps { display:grid; grid-template-columns:repeat(11,1fr); border-radius:10px; overflow:hidden; }
+  .step { min-height:64px; padding:8px 6px; display:flex; flex-direction:column; justify-content:space-between;
+    font-size:11px; }
+  .step b { font-size:12px; }
+  .step .mono { font-size:10px; }
+  .step.anchor { outline:3px solid var(--ink); outline-offset:-3px; }
+  .modes { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .mode { border:1px solid; border-radius:16px; padding:20px; break-inside:avoid; }
+  .mode-head { font-size:12px; letter-spacing:.12em; text-transform:uppercase; opacity:.7; margin-bottom:12px; }
+  .card { border:1px solid; border-radius:12px; padding:18px; }
+  .card h4 { margin:0 0 6px; font-size:18px; }
+  .card p { margin:0 0 14px; }
+  .card a { text-decoration:underline; }
+  .btns { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .btn { padding:9px 16px; border-radius:9px; font-weight:600; font-size:13px; border:1px solid transparent; }
+  .btn.ghost { background:transparent; }
+  .alt { border-radius:9px; padding:10px; display:flex; gap:8px; flex-wrap:wrap; }
+  .badge { border:1.5px solid; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:600; }
+  .pairs { width:100%; border-collapse:collapse; margin-top:14px; font-size:12px; }
+  .pairs td { padding:4px 0; border-top:1px solid rgba(127,127,127,.25); }
+  .pairs td:nth-child(2) { text-align:right; padding-right:12px; }
+  .pairs td:last-child { text-align:right; width:70px; }
+  .ok { opacity:.75; }
+  .bad { color:#c4001a; font-weight:700; background:#fff; border-radius:4px; }
+  @media (max-width:760px) { main { padding:28px 16px; } .modes { grid-template-columns:1fr; }
+    .scale { grid-template-columns:1fr; } .step .mono { display:none; } header { flex-direction:column;
+    align-items:flex-start; } }
+  @media print { main { padding:0; } body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style></head>
+<body><main>
+<header><div><h1>모이는 들녘</h1><p>들녘 초록 바탕, 새순 연두 조각, 볏짚 노랑 하나.</p></div><p class=audit>Audit: <b>pass</b> · 0 blocking · 3 warnings · 5 notes</p></header>
+<h2>Brand colours</h2>
+<section class="brands">
+<figure class="brand">
+  <div class="chip" style="background:#1f7a4d;color:#ffffff"><span>들녘 초록</span>
+    <em>locked</em></div>
+  <figcaption><b class=mono>#1f7a4d</b><span class=mono>rgb(31 122 77)</span><span class=mono>oklch(51.5% 0.110 156.8)</span>
+    <span class=mono>Lab D50 45.2 / -35.8 / 16.8</span>
+    <span>on white 5.32:1 · on black 3.95:1</span><span class=muted>주색: 마크, 제목, 띠</span>
+  </figcaption>
+</figure>
+<figure class="brand">
+  <div class="chip" style="background:#f2b134;color:#111111"><span>볏짚 노랑</span>
+    <em>locked</em></div>
+  <figcaption><b class=mono>#f2b134</b><span class=mono>rgb(242 177 52)</span><span class=mono>oklch(80.2% 0.151 78.9)</span>
+    <span class=mono>Lab D50 77.0 / 16.8 / 68.6</span>
+    <span>on white 1.89:1 · on black 11.11:1</span><span class=muted>도착하는 필지, 강조 한 곳</span>
+  </figcaption>
+</figure></section>
+<p class=muted>Feels: 함께, 든든한, 쉬운</p>
+<h2>Extended colours</h2>
+<section class="brands">
+<figure class="brand">
+  <div class="ext-chip"><div class='ext-half' style='background:#3f9f60;color:#09120c'><span>light</span><b class=mono>#3f9f60</b><span class=mono>Aa 5.75:1</span></div><div class='ext-half' style='background:#3f9f60;color:#09120c'><span>dark</span><b class=mono>#3f9f60</b><span class=mono>Aa 5.75:1</span></div></div>
+  <figcaption><b>ext-1 · 새순 연두</b><span class=mono>rgb(63 159 96)</span>
+    <span class=mono>oklch(62.9% 0.131 152.0)</span><span class=muted>마크의 보조 조각, 연한 면</span></figcaption>
+</figure></section>
+<h2>Scales</h2>
+<section><div class=scale><div class=scale-name>primary<small>anchor 700</small></div><div class=steps><div class='step' style='background:#effbf3;color:#111111'><b>50</b><span class=mono>#effbf3</span></div><div class='step' style='background:#daf7e4;color:#111111'><b>100</b><span class=mono>#daf7e4</span></div><div class='step' style='background:#a9f2c5;color:#111111'><b>200</b><span class=mono>#a9f2c5</span></div><div class='step' style='background:#7ce1a7;color:#111111'><b>300</b><span class=mono>#7ce1a7</span></div><div class='step' style='background:#60c58c;color:#111111'><b>400</b><span class=mono>#60c58c</span></div><div class='step' style='background:#4bb17a;color:#111111'><b>500</b><span class=mono>#4bb17a</span></div><div class='step' style='background:#2e9360;color:#111111'><b>600</b><span class=mono>#2e9360</span></div><div class='step anchor' style='background:#1f7a4d;color:#ffffff'><b>700</b><span class=mono>#1f7a4d</span></div><div class='step' style='background:#11653d;color:#ffffff'><b>800</b><span class=mono>#11653d</span></div><div class='step' style='background:#105433;color:#ffffff'><b>900</b><span class=mono>#105433</span></div><div class='step' style='background:#142f20;color:#ffffff'><b>950</b><span class=mono>#142f20</span></div></div></div><div class=scale><div class=scale-name>neutral<small>tinted toward primary</small></div><div class=steps><div class='step' style='background:#f9fbfa;color:#111111'><b>50</b><span class=mono>#f9fbfa</span></div><div class='step' style='background:#f1f4f2;color:#111111'><b>100</b><span class=mono>#f1f4f2</span></div><div class='step' style='background:#e4e7e5;color:#111111'><b>200</b><span class=mono>#e4e7e5</span></div><div class='step' style='background:#d1d5d2;color:#111111'><b>300</b><span class=mono>#d1d5d2</span></div><div class='step' style='background:#9ca49e;color:#111111'><b>400</b><span class=mono>#9ca49e</span></div><div class='step' style='background:#6c766f;color:#ffffff'><b>500</b><span class=mono>#6c766f</span></div><div class='step' style='background:#4d5851;color:#ffffff'><b>600</b><span class=mono>#4d5851</span></div><div class='step' style='background:#39443d;color:#ffffff'><b>700</b><span class=mono>#39443d</span></div><div class='step' style='background:#242e28;color:#ffffff'><b>800</b><span class=mono>#242e28</span></div><div class='step' style='background:#141f18;color:#ffffff'><b>900</b><span class=mono>#141f18</span></div><div class='step' style='background:#09120c;color:#ffffff'><b>950</b><span class=mono>#09120c</span></div></div></div><div class=scale><div class=scale-name>accent<small>anchor 300</small></div><div class=steps><div class='step' style='background:#fff7e7;color:#111111'><b>50</b><span class=mono>#fff7e7</span></div><div class='step' style='background:#ffeac5;color:#111111'><b>100</b><span class=mono>#ffeac5</span></div><div class='step' style='background:#fdd387;color:#111111'><b>200</b><span class=mono>#fdd387</span></div><div class='step anchor' style='background:#f2b134;color:#111111'><b>300</b><span class=mono>#f2b134</span></div><div class='step' style='background:#d8951a;color:#111111'><b>400</b><span class=mono>#d8951a</span></div><div class='step' style='background:#c5830d;color:#111111'><b>500</b><span class=mono>#c5830d</span></div><div class='step' style='background:#a66909;color:#ffffff'><b>600</b><span class=mono>#a66909</span></div><div class='step' style='background:#8d5406;color:#ffffff'><b>700</b><span class=mono>#8d5406</span></div><div class='step' style='background:#774404;color:#ffffff'><b>800</b><span class=mono>#774404</span></div><div class='step' style='background:#663804;color:#ffffff'><b>900</b><span class=mono>#663804</span></div><div class='step' style='background:#3f2006;color:#ffffff'><b>950</b><span class=mono>#3f2006</span></div></div></div><div class=scale><div class=scale-name>success<small></small></div><div class=steps><div class='step' style='background:#ecfcf7;color:#111111'><b>50</b><span class=mono>#ecfcf7</span></div><div class='step' style='background:#d4f8ef;color:#111111'><b>100</b><span class=mono>#d4f8ef</span></div><div class='step' style='background:#92f4e0;color:#111111'><b>200</b><span class=mono>#92f4e0</span></div><div class='step' style='background:#66e1c9;color:#111111'><b>300</b><span class=mono>#66e1c9</span></div><div class='step' style='background:#3fc5ae;color:#111111'><b>400</b><span class=mono>#3fc5ae</span></div><div class='step' style='background:#2bb19b;color:#111111'><b>500</b><span class=mono>#2bb19b</span></div><div class='step' style='background:#0d927f;color:#111111'><b>600</b><span class=mono>#0d927f</span></div><div class='step' style='background:#087868;color:#ffffff'><b>700</b><span class=mono>#087868</span></div><div class='step' style='background:#066355;color:#ffffff'><b>800</b><span class=mono>#066355</span></div><div class='step' style='background:#045347;color:#ffffff'><b>900</b><span class=mono>#045347</span></div><div class='step' style='background:#063029;color:#ffffff'><b>950</b><span class=mono>#063029</span></div></div></div><div class=scale><div class=scale-name>warning<small></small></div><div class=steps><div class='step' style='background:#fff6ee;color:#111111'><b>50</b><span class=mono>#fff6ee</span></div><div class='step' style='background:#ffebda;color:#111111'><b>100</b><span class=mono>#ffebda</span></div><div class='step' style='background:#fdd7b4;color:#111111'><b>200</b><span class=mono>#fdd7b4</span></div><div class='step' style='background:#f5bb86;color:#111111'><b>300</b><span class=mono>#f5bb86</span></div><div class='step' style='background:#ed9637;color:#111111'><b>400</b><span class=mono>#ed9637</span></div><div class='step' style='background:#d68425;color:#111111'><b>500</b><span class=mono>#d68425</span></div><div class='step' style='background:#b36a0a;color:#111111'><b>600</b><span class=mono>#b36a0a</span></div><div class='step' style='background:#945706;color:#ffffff'><b>700</b><span class=mono>#945706</span></div><div class='step' style='background:#7a4704;color:#ffffff'><b>800</b><span class=mono>#7a4704</span></div><div class='step' style='background:#673b03;color:#ffffff'><b>900</b><span class=mono>#673b03</span></div><div class='step' style='background:#3c2205;color:#ffffff'><b>950</b><span class=mono>#3c2205</span></div></div></div><div class=scale><div class=scale-name>danger<small></small></div><div class=steps><div class='step' style='background:#fff5f3;color:#111111'><b>50</b><span class=mono>#fff5f3</span></div><div class='step' style='background:#ffe9e6;color:#111111'><b>100</b><span class=mono>#ffe9e6</span></div><div class='step' style='background:#fed3cd;color:#111111'><b>200</b><span class=mono>#fed3cd</span></div><div class='step' style='background:#feb2a8;color:#111111'><b>300</b><span class=mono>#feb2a8</span></div><div class='step' style='background:#fe8477;color:#111111'><b>400</b><span class=mono>#fe8477</span></div><div class='step' style='background:#f86156;color:#111111'><b>500</b><span class=mono>#f86156</span></div><div class='step' style='background:#e0312e;color:#ffffff'><b>600</b><span class=mono>#e0312e</span></div><div class='step' style='background:#b4312b;color:#ffffff'><b>700</b><span class=mono>#b4312b</span></div><div class='step' style='background:#922c27;color:#ffffff'><b>800</b><span class=mono>#922c27</span></div><div class='step' style='background:#7a2520;color:#ffffff'><b>900</b><span class=mono>#7a2520</span></div><div class='step' style='background:#471713;color:#ffffff'><b>950</b><span class=mono>#471713</span></div></div></div><div class=scale><div class=scale-name>info<small></small></div><div class=steps><div class='step' style='background:#f2f8ff;color:#111111'><b>50</b><span class=mono>#f2f8ff</span></div><div class='step' style='background:#e3f0ff;color:#111111'><b>100</b><span class=mono>#e3f0ff</span></div><div class='step' style='background:#c7e2fe;color:#111111'><b>200</b><span class=mono>#c7e2fe</span></div><div class='step' style='background:#9ecdfe;color:#111111'><b>300</b><span class=mono>#9ecdfe</span></div><div class='step' style='background:#66b2fd;color:#111111'><b>400</b><span class=mono>#66b2fd</span></div><div class='step' style='background:#3e9ef7;color:#111111'><b>500</b><span class=mono>#3e9ef7</span></div><div class='step' style='background:#2681d2;color:#111111'><b>600</b><span class=mono>#2681d2</span></div><div class='step' style='background:#196aaf;color:#ffffff'><b>700</b><span class=mono>#196aaf</span></div><div class='step' style='background:#125792;color:#ffffff'><b>800</b><span class=mono>#125792</span></div><div class='step' style='background:#0f487a;color:#ffffff'><b>900</b><span class=mono>#0f487a</span></div><div class='step' style='background:#0c2a46;color:#ffffff'><b>950</b><span class=mono>#0c2a46</span></div></div></div><div class=scale><div class=scale-name>ext-1<small>anchor 600</small></div><div class=steps><div class='step' style='background:#eefcf1;color:#111111'><b>50</b><span class=mono>#eefcf1</span></div><div class='step' style='background:#dff7e4;color:#111111'><b>100</b><span class=mono>#dff7e4</span></div><div class='step' style='background:#b8f2c6;color:#111111'><b>200</b><span class=mono>#b8f2c6</span></div><div class='step' style='background:#84e6a1;color:#111111'><b>300</b><span class=mono>#84e6a1</span></div><div class='step' style='background:#66cd86;color:#111111'><b>400</b><span class=mono>#66cd86</span></div><div class='step' style='background:#54bb76;color:#111111'><b>500</b><span class=mono>#54bb76</span></div><div class='step anchor' style='background:#3f9f60;color:#111111'><b>600</b><span class=mono>#3f9f60</span></div><div class='step' style='background:#2a834a;color:#ffffff'><b>700</b><span class=mono>#2a834a</span></div><div class='step' style='background:#1e6b3b;color:#ffffff'><b>800</b><span class=mono>#1e6b3b</span></div><div class='step' style='background:#195830;color:#ffffff'><b>900</b><span class=mono>#195830</span></div><div class='step' style='background:#12301b;color:#ffffff'><b>950</b><span class=mono>#12301b</span></div></div></div></section>
+<h2>Roles in use</h2>
+<section class="modes">
+<div class="mode" style="background:#f9fbfa;color:#141f18;border-color:#d5dbd8">
+  <div class="mode-head"><span>light</span></div>
+  <div class="card" style="background:#ffffff;border-color:#d5dbd8">
+    <h4 style="color:#141f18">Heading on surface</h4>
+    <p style="color:#4d5851">Muted supporting copy with a <a style="color:#1f7a4d">text link</a>.</p>
+    <div class="btns">
+      <span class="btn" style="background:#1f7a4d;color:#ffffff">Primary</span>
+      <span class="btn" style="background:#f2b134;color:#09120c">Accent</span>
+      <span class="btn ghost" style="color:#141f18;border-color:#d5dbd8;
+        box-shadow:0 0 0 2px #f9fbfa,0 0 0 4px #1f7a4d">Focused</span>
+    </div>
+    <div class="alt" style="background:#eff1f0"><span class=badge style='color:#087868;border-color:#087868'>Success</span><span class=badge style='color:#945706;border-color:#945706'>Warning</span><span class=badge style='color:#b4312b;border-color:#b4312b'>Danger</span><span class=badge style='color:#196aaf;border-color:#196aaf'>Info</span></div>
+  </div>
+  <table class="pairs" style="color:#141f18"><tr><td>Ink / Ground</td><td class=mono>16.31:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Muted ink / Ground</td><td class=mono>7.14:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Ink / Surface</td><td class=mono>16.95:1</td><td class='ok'>pass 4.5</td></tr><tr><td>On primary / Primary</td><td class=mono>5.32:1</td><td class='ok'>pass 4.5</td></tr><tr><td>On accent / Accent</td><td class=mono>10.07:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Link / Ground</td><td class=mono>5.12:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Focus / Ground</td><td class=mono>5.12:1</td><td class='ok'>pass 3.0</td></tr><tr><td>Danger / Ground</td><td class=mono>5.92:1</td><td class='ok'>pass 3.0</td></tr><tr><td>Success / Ground</td><td class=mono>5.19:1</td><td class='ok'>pass 3.0</td></tr></table>
+</div>
+<div class="mode" style="background:#09120c;color:#f1f4f2;border-color:#39443d">
+  <div class="mode-head"><span>dark</span></div>
+  <div class="card" style="background:#141f18;border-color:#39443d">
+    <h4 style="color:#f1f4f2">Heading on surface</h4>
+    <p style="color:#9ca49e">Muted supporting copy with a <a style="color:#4bb17a">text link</a>.</p>
+    <div class="btns">
+      <span class="btn" style="background:#4bb17a;color:#09120c">Primary</span>
+      <span class="btn" style="background:#f2b134;color:#09120c">Accent</span>
+      <span class="btn ghost" style="color:#f1f4f2;border-color:#39443d;
+        box-shadow:0 0 0 2px #09120c,0 0 0 4px #4bb17a">Focused</span>
+    </div>
+    <div class="alt" style="background:#242e28"><span class=badge style='color:#3fc5ae;border-color:#3fc5ae'>Success</span><span class=badge style='color:#ed9637;border-color:#ed9637'>Warning</span><span class=badge style='color:#fe8477;border-color:#fe8477'>Danger</span><span class=badge style='color:#66b2fd;border-color:#66b2fd'>Info</span></div>
+  </div>
+  <table class="pairs" style="color:#f1f4f2"><tr><td>Ink / Ground</td><td class=mono>17.18:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Muted ink / Ground</td><td class=mono>7.45:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Ink / Surface</td><td class=mono>15.31:1</td><td class='ok'>pass 4.5</td></tr><tr><td>On primary / Primary</td><td class=mono>7.13:1</td><td class='ok'>pass 4.5</td></tr><tr><td>On accent / Accent</td><td class=mono>10.07:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Link / Ground</td><td class=mono>7.13:1</td><td class='ok'>pass 4.5</td></tr><tr><td>Focus / Ground</td><td class=mono>7.13:1</td><td class='ok'>pass 3.0</td></tr><tr><td>Danger / Ground</td><td class=mono>7.96:1</td><td class='ok'>pass 3.0</td></tr><tr><td>Success / Ground</td><td class=mono>8.89:1</td><td class='ok'>pass 3.0</td></tr></table>
+</div></section>
+<p class="muted" style="margin-top:32px;font-size:12px">Contrast: WCAG 2.x ratios, unrounded. Lab D50 values are computed from sRGB for print hand-off; CMYK needs the printer&#x27;s ICC profile and Pantone matches need a physical guide. Generated by brand-identity from palette.json. Edit the palette, not this file.</p>
+</main></body></html>

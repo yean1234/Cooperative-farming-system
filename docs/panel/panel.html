@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>모두의 농장 — OPEN HARBOR 2026 비즈니스톤 판넬 (1220×1820mm)</title>
+<!-- 판넬 원본(v2, 아이덴티티 세트 A '모이는 들녘'). 작업 크기 1220×1820mm(재단 후 1200×1800mm). node build.js 로 PDF를 만든다. -->
+<style>
+  @page { size: 1220mm 1820mm; margin: 0; }
+  :root {
+    /* 브랜드 토큰: docs/brand/kit/tokens/tokens.css 에서 가져옴 */
+    --green: #1f7a4d; --green-2: #3f9f60; --green-900: #105433; --green-950: #142f20;
+    --green-100: #daf7e4; --green-200: #a9f2c5; --green-400: #60c58c; --green-500: #4bb17a; --green-600: #2e9360;
+    --gold: #f2b134; --gold-100: #ffeac5; --gold-500: #c5830d;
+    --ink: #141f18; --ink-2: #4d5851; --line: #e4e7e5; --ground: #f9fbfa; --white: #fff;
+    --bleed: 10mm; --safe: 60mm;
+    --display: "Wanted Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { width: 1220mm; height: 1820mm; overflow: hidden; background: var(--ground); color: var(--ink);
+    font-family: var(--display); font-feature-settings: "tnum" 1; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    word-break: keep-all; line-height: 1.4; }
+  .panel { position: relative; width: 1220mm; height: 1820mm; }
+  section { position: absolute; left: 0; width: 1220mm; padding: 0 var(--safe); }
+  h1, h2, h3, p, ul, ol { margin: 0; }
+  b { font-weight: 700; }
+
+  /* ───── 상단: 로고 · 헤드라인 · 작동 그림 */
+  .hero { top: 0; height: 600mm; background: var(--green); color: #fff; }
+  .lockup { position: absolute; left: var(--safe); top: 54mm; display: flex; align-items: center; gap: 16mm; }
+  .lockup svg { width: 62mm; height: 62mm; display: block; }
+  .lockup .name { font-size: 54mm; font-weight: 900; letter-spacing: -0.025em; line-height: 1; }
+  .hero h1 { position: absolute; left: var(--safe); top: 156mm; width: 590mm; font-size: 60mm; font-weight: 900; letter-spacing: -0.025em; line-height: 1.12; }
+  .hero .sub { position: absolute; left: var(--safe); top: 326mm; width: 540mm; font-size: 30mm; font-weight: 500; line-height: 1.35; color: var(--gold-100); }
+  .hero .sub b { color: #fff; font-weight: 700; }
+  .hero .meta { position: absolute; left: var(--safe); top: 478mm; font-size: 17mm; font-weight: 500; color: #cfeadb; }
+  .hero .meta b { color: #fff; font-weight: 700; }
+  .demo { position: absolute; left: 600mm; top: 62mm; width: 560mm; height: 462mm; }
+  .demo svg { width: 560mm; height: 462mm; display: block; }
+  .verdict { position: absolute; left: 600mm; top: 500mm; display: inline-flex; align-items: center; gap: 10mm; background: #fff; color: var(--ink); border-radius: 99mm; padding: 9mm 22mm 9mm 12mm; font-size: 20mm; font-weight: 700; }
+  .verdict .dot { width: 22mm; height: 22mm; border-radius: 50%; background: var(--gold); display: inline-flex; align-items: center; justify-content: center; color: var(--ink); font-size: 12mm; font-weight: 900; }
+  .verdict span.m { font-weight: 500; color: var(--ink-2); }
+
+  /* ───── 공통 */
+  .sec-head { display: flex; align-items: baseline; gap: 12mm; margin-bottom: 18mm; }
+  .sec-head h2 { font-size: 44mm; font-weight: 900; letter-spacing: -0.02em; line-height: 1.12; }
+  .sec-head .note { margin-left: auto; font-size: 16mm; font-weight: 500; color: var(--ink-2); }
+
+  /* ───── 문제 */
+  .problem { top: 600mm; height: 300mm; padding-top: 30mm; background: var(--ground); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20mm; }
+  .stat { background: #fff; border: 0.6mm solid var(--line); border-radius: 10mm; padding: 16mm 18mm 18mm; }
+  .stat .n { font-size: 52mm; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; color: var(--green); }
+  .stat .n small { font-size: 24mm; font-weight: 700; color: var(--ink); margin-left: 3mm; }
+  .stat .k { margin-top: 7mm; font-size: 19mm; font-weight: 500; line-height: 1.35; }
+  .stat .s { margin-top: 5mm; font-size: 12.5mm; line-height: 1.35; color: var(--ink-2); }
+
+  /* ───── 해결: 세 단계 */
+  .solution { top: 900mm; height: 570mm; padding-top: 30mm; background: #fff; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20mm; }
+  .step h3 { display: flex; align-items: center; gap: 8mm; font-size: 27mm; font-weight: 900; letter-spacing: -0.015em; line-height: 1.15; }
+  .step h3 .no { flex: none; width: 26mm; height: 26mm; border-radius: 50%; background: var(--gold); color: var(--ink); font-size: 15mm; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; }
+  .step p { margin-top: 7mm; font-size: 19mm; line-height: 1.4; min-height: 80mm; }
+  .step p b { font-weight: 700; color: var(--green); }
+  .shot { margin-top: 8mm; border: 0.6mm solid var(--line); border-radius: 8mm; overflow: hidden; background: #fff; height: 300mm; }
+  .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+
+  /* ───── 근거 띠 */
+  .proof { top: 1470mm; height: 90mm; background: var(--green-100); display: grid; grid-template-columns: repeat(3, 1fr); gap: 20mm; align-items: center; }
+  .proof .item { display: flex; align-items: center; gap: 9mm; font-size: 18mm; font-weight: 500; line-height: 1.3; color: var(--green-950); }
+  .proof .item b { font-size: 24mm; font-weight: 900; color: var(--green); letter-spacing: -0.02em; white-space: nowrap; }
+  .proof .item i { display: none; }
+
+  /* ───── 하단 */
+  .foot { top: 1560mm; height: 260mm; background: var(--green-900); color: #fff; display: grid; grid-template-columns: 330mm 1fr 400mm; gap: 28mm; align-items: center; }
+  .qr { display: flex; align-items: center; gap: 14mm; }
+  .qr img { width: 130mm; height: 130mm; background: #fff; padding: 6mm; border-radius: 8mm; display: block; }
+  .qr .t { font-size: 20mm; font-weight: 700; line-height: 1.3; }
+  .qr .t small { display: block; font-size: 13.5mm; font-weight: 500; color: #cfeadb; margin-top: 3mm; }
+  .who h4 { margin: 0 0 6mm; font-size: 15mm; font-weight: 700; color: var(--gold); }
+  .who p { font-size: 19mm; line-height: 1.4; color: #e9f5ee; }
+  .who p b { color: #fff; }
+  .who .team { margin-top: 14mm; font-size: 30mm; font-weight: 900; letter-spacing: -0.02em; }
+  .who .team small { font-size: 16mm; font-weight: 500; color: #cfeadb; margin-left: 8mm; letter-spacing: 0; }
+  .next h4 { margin: 0 0 6mm; font-size: 15mm; font-weight: 700; color: var(--gold); }
+  .next ol { margin: 0; padding: 0; list-style: none; font-size: 15mm; line-height: 1.4; }
+  .next li { display: flex; gap: 8mm; margin-bottom: 3mm; }
+  .next li b { flex: none; width: 98mm; color: #fff; }
+  .next li span { color: #e9f5ee; }
+  .next .dis { margin-top: 9mm; font-size: 11.5mm; line-height: 1.35; color: #a9d6bb; }
+</style>
+</head>
+<body>
+<div class="panel">
+
+  <section class="hero" aria-label="서비스명과 한 줄 소개">
+    <div class="lockup" aria-label="모두의 농장 로고">
+      <!-- 아이덴티티 세트 A 마크, 초록 바탕용 단색(흰색) 버전. docs/brand/kit/logo/master-symbol.svg 와 같은 경로 -->
+      <svg viewBox="0 0 100 100" role="img" aria-hidden="true">
+        <path fill="#ffffff" d="M16 11L40 11C44.971 11 49 15.029 49 20L49 36C49 40.971 44.971 45 40 45L16 45C11.029 45 7 40.971 7 36L7 20C7 15.029 11.029 11 16 11Z"/>
+        <path fill="#ffffff" opacity=".78" d="M20 50L36 50C40.971 50 45 54.029 45 59L45 79C45 83.971 40.971 88 36 88L20 88C15.029 88 11 83.971 11 79L11 59C11 54.029 15.029 50 20 50ZM60 11L78 11C82.971 11 87 15.029 87 20L87 32C87 36.971 82.971 41 78 41L60 41C55.029 41 51 36.971 51 32L51 20C51 15.029 55.029 11 60 11Z"/>
+        <path fill="#f2b134" d="M59.7 55.98L79.11 51.15C83.931 49.947 88.815 52.879 90.02 57.7L94.85 77.11C96.053 81.931 93.121 86.815 88.3 88.02L68.89 92.85C64.069 94.053 59.185 91.121 57.98 86.3L53.15 66.89C51.947 62.069 54.879 57.185 59.7 55.98Z"/>
+      </svg>
+      <span class="name">모두의 농장</span>
+    </div>
+    <h1>농가 한 곳이 빠져도,<br>공동영농은 계속됩니다</h1>
+    <p class="sub">거절로 생긴 <b>빈 땅</b>을 <b>1초 만에</b> 다시 설계하는<br>공동영농 법인의 도우미</p>
+    <p class="meta"><b>OPEN HARBOR 2026 비즈니스톤</b> · 팀 물개 · 한동대학교</p>
+
+    <!-- 작동 그림: 들녘에 난 빈 땅, 들어오는 대체 땅. 로고 마크와 같은 둥근 필지 조각으로 그린다. -->
+    <div class="demo" aria-label="작동 원리 그림: 빈 땅 한 칸에 대체 땅이 들어온다">
+      <svg viewBox="0 0 580 480" role="img">
+        <g>
+          <rect x="20"  y="60"  width="106" height="86" rx="18" fill="#2e9360"/>
+          <rect x="138" y="60"  width="106" height="86" rx="18" fill="#4bb17a"/>
+          <rect x="256" y="60"  width="106" height="86" rx="18" fill="#2e9360"/>
+          <rect x="20"  y="158" width="106" height="86" rx="18" fill="#4bb17a"/>
+          <rect x="138" y="158" width="106" height="86" rx="18" fill="#60c58c"/>
+          <rect x="256" y="158" width="106" height="86" rx="18" fill="#4bb17a"/>
+          <rect x="20"  y="256" width="106" height="86" rx="18" fill="#2e9360"/>
+          <rect x="138" y="256" width="106" height="86" rx="18" fill="#4bb17a"/>
+          <!-- 빈 땅: 거절한 농가의 필지 -->
+          <rect x="256" y="256" width="106" height="86" rx="18" fill="none" stroke="#ffffff" stroke-opacity=".85" stroke-width="4" stroke-dasharray="12 9"/>
+          <text x="309" y="292" text-anchor="middle" fill="#fff" font-size="22" font-weight="900">빈 땅</text>
+          <text x="309" y="318" text-anchor="middle" fill="#fff" fill-opacity=".85" font-size="14" font-weight="500">1.9ha 부족</text>
+        </g>
+        <!-- 들어오는 대체 땅: 로고의 노란 조각과 같은 기울기. 잔상은 들어온 방향(오른쪽 위)에 남는다 -->
+        <g>
+          <rect x="398" y="258" width="106" height="86" rx="18" fill="#f2b134" fill-opacity=".12" transform="translate(64 -52) rotate(-14 451 301)"/>
+          <rect x="398" y="258" width="106" height="86" rx="18" fill="#f2b134" fill-opacity=".3" transform="translate(32 -26) rotate(-14 451 301)"/>
+          <g transform="rotate(-14 451 301)">
+            <rect x="398" y="258" width="106" height="86" rx="18" fill="#f2b134"/>
+            <text x="451" y="296" text-anchor="middle" fill="#141f18" font-size="21" font-weight="900">대체 땅</text>
+            <text x="451" y="321" text-anchor="middle" fill="#141f18" fill-opacity=".8" font-size="14" font-weight="700">+2.4ha · 설득 1농가</text>
+          </g>
+        </g>
+        <g font-size="15" font-weight="500" fill="#dff2e6">
+          <rect x="20" y="410" width="16" height="16" rx="4" fill="#4bb17a"/><text x="44" y="424">법인 단지 23.2ha</text>
+          <rect x="220" y="410" width="16" height="16" rx="4" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 3"/><text x="244" y="424">거절로 빈 땅 5.2ha</text>
+          <rect x="420" y="410" width="16" height="16" rx="4" fill="#f2b134"/><text x="444" y="424">1순위 대체 땅</text>
+        </g>
+      </svg>
+    </div>
+    <p class="verdict"><span class="dot">판정</span><span>0.01초 안에 답이 나온다</span><span class="m">· 20ha 기준 유지 · 설득 1농가</span></p>
+  </section>
+
+  <section class="problem" aria-label="문제">
+    <div class="sec-head"><h2>거절 한 건이 공동영농의 문턱이 된다</h2><span class="note">경북 예비 법인 대표·사무장의 현장</span></div>
+    <div class="stats">
+      <div class="stat"><div class="n">10회<small>· 1~1.5년</small></div><div class="k">설명회 횟수와 설득 기간. 거절이 나오면 단지를 다시 짜고 처음부터 다시 연다</div><div class="s">문경·영덕 법인 대표 발언, 경주·상주시청 농정과 인터뷰(2026.10)</div></div>
+      <div class="stat"><div class="n">20ha<small>· 농가 5명</small></div><div class="k">지원 요건. 한 농가만 빠져도 2년 최대 20억 원 지원에서 탈락할 수 있다</div><div class="s">농식품부 공동영농 확산 지원사업. 탈락 사유 1위 '집단화 미비·면적 부족'(경주시청)</div></div>
+      <div class="stat"><div class="n">1,500<small>~4,000원</small></div><div class="k">지구별 평당 배당. 산정 근거가 없어 "내 배당이 얼마냐"에 답하지 못한다</div><div class="s">경북 배당 법인 10개소(경북매일 2026.3)</div></div>
+    </div>
+  </section>
+
+  <section class="solution" aria-label="해결">
+    <div class="sec-head"><h2>모두의 농장은 세 단계로 답한다</h2><span class="note">시제품 실행 화면 · 포항 흥해 실측 필지</span></div>
+    <div class="steps">
+      <div class="step">
+        <h3><span class="no">1</span>지도에서 빈 땅을 누른다</h3>
+        <p>거절한 농가의 필지를 누르면 끝이다. <b>지도 프로그램을 몰라도</b> 되고, 법인 자료 없이 공개 지도만으로 시작한다.</p>
+        <div class="shot"><img src="assets/step1-map.png" alt="흥해 들녘 지도에서 거절 농가 3곳이 빈 땅으로 표시된 화면"></div>
+      </div>
+      <div class="step">
+        <h3><span class="no">2</span>1초 안에 답이 나온다</h3>
+        <p><b>지원 기준 충족 여부, 법인 순수익, 남은 조합원 평당 배당</b>, 대신 설득할 1순위 땅까지 한 줄로 보여 준다.</p>
+        <div class="shot"><img src="assets/step2-options.png" alt="대체 필지 추천 표: 1순위 이웃 1 편입, 20.5ha, 설득 1명"></div>
+      </div>
+      <div class="step">
+        <h3><span class="no">3</span>한 장을 뽑아 건넨다</h3>
+        <p>대표 보고용 1장, 남은 농가 설명용 <b>큰 글자 1장</b>. 흉년이면 누가 손해를 지는지까지 적혀 있다.</p>
+        <div class="shot"><img src="assets/sheet-farm.png" alt="농가 설명용 자료: 평당 받는 돈과 내 땅이면 1년에 얼마"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="proof" aria-label="근거">
+    <div class="item"><i></i><span><b>2,666필지</b><br>포항 흥해 들녘 실측 지도로 돌아간다</span></div>
+    <div class="item"><i></i><span><b>공개 데이터 3종</b><br>팜맵·흙토람·연속지적도, 서버 없이 브라우저에서</span></div>
+    <div class="item"><i></i><span><b>서류 3종</b><br>한 번의 계산으로 신청서 수치표와 설명 자료까지</span></div>
+  </section>
+
+  <section class="foot" aria-label="QR과 팀">
+    <div class="qr"><img src="assets/qr-github.png" alt="QR 코드: 시제품과 소개 자료"><p class="t">시제품 · 소개 자료<small>QR을 찍으면 실행 화면과<br>설계 근거 문서를 볼 수 있다</small></p></div>
+    <div class="who">
+      <h4>누가 쓰나</h4>
+      <p>공동영농 법인을 준비하는 <b>대표와 사무장</b>. 2027년 공모를 준비하는 경북 예비 법인부터 시작한다.</p>
+      <p class="team">팀 물개<small>한동대학교 · 박서연 · 지예은</small></p>
+    </div>
+    <div class="next">
+      <h4>다음 단계</h4>
+      <ol>
+        <li><b>2026.12</b><span>예비 법인·교육 참석 농가 전화 인터뷰 5건, 시연 1곳</span></li>
+        <li><b>2027.3</b><span>경북 예비 법인 3곳 무료 설계, 설계 전후 지표 공개</span></li>
+        <li><b>2027 하반기</b><span>보조금 교육·컨설팅 비목으로 첫 유료 계약</span></li>
+      </ol>
+      <p class="dis">화면 수치는 흥해 실측 필지(소유자는 추정)로 계산한 추정치이며 약속된 금액이 아니다.</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

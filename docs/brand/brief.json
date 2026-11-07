@@ -1,0 +1,47 @@
+{
+  "schema": "brand-identity/brief@1",
+  "brand": "모두의 농장",
+  "tagline": "농가 한 곳이 빠져도, 공동영농은 계속됩니다",
+  "site": null,
+  "languages": [
+    "ko",
+    "en"
+  ],
+  "doc_lang": "ko",
+  "numbers": true,
+  "components": {
+    "logo": "new",
+    "type": "new",
+    "palette": "new"
+  },
+  "sources": {},
+  "sets": 3,
+  "sector": "공동영농 단지 재설계·배당 산정 소프트웨어",
+  "audience": "공동영농 법인을 준비하는 경북 예비 법인 대표·사무장",
+  "attributes": [
+    "함께",
+    "든든한",
+    "쉬운"
+  ],
+  "competitors": [
+    "팜맵",
+    "농업e지",
+    "농어촌공사 농지은행",
+    "일본 NARO QFarmLandManager",
+    "컨설팅 업체"
+  ],
+  "axes": [],
+  "copy": {
+    "sentence": {
+      "ko": "거절로 생긴 빈 땅을 1초 만에 다시 설계한다",
+      "en": "Redesign the empty field in one second"
+    },
+    "nav": [
+      "후보단지",
+      "빈 필드",
+      "배당",
+      "설명 자료"
+    ],
+    "cta": "시뮬레이터 열기"
+  }
+}

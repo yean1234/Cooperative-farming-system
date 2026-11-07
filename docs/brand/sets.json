@@ -1,0 +1,493 @@
+{
+ "schema": "brand-identity/sets@1",
+ "sets": [
+  {
+   "identity": {
+    "set": {
+     "id": "A",
+     "name": "모이는 들녘",
+     "recommended": true,
+     "mechanism": "흩어진 필지가 한 들녘으로 모여드는 움직임: 셋은 자리를 잡고 노란 하나가 기울어진 채 들어오는 마크, 그 둥근 필지와 같은 굵기의 완디드 산스, 들녘 초록·새순 연두에 볏짚 노랑 하나.",
+     "expression_move": "기울어진 채 도착 중인 노란 필지. 팔레트에서 따뜻한 색은 이것뿐이다.",
+     "differs_by": "팜맵·농업e지·농어촌공사는 관공서 파랑에 사진 위주 화면이고 로고는 글자뿐이다. 이 안은 평면 초록 위에 '움직이는 필지' 마크를 둔다. 일본 NARO 도구는 브랜드가 없다."
+    },
+    "axes": {
+     "warm_cool": -1,
+     "playful_serious": -1,
+     "quiet_loud": 1,
+     "friend_authority": -1
+    },
+    "type": {
+     "pairing_mode": "single-family",
+     "display": {
+      "family": "Wanted Sans",
+      "source": "user",
+      "license": "OFL-1.1",
+      "weights": [
+       900
+      ],
+      "location": {
+       "wght": 900
+      },
+      "features": [],
+      "case": "as-is",
+      "tracking": -25,
+      "fallback": "\"Apple SD Gothic Neo\",\"Malgun Gothic\",sans-serif",
+      "file": "/tmp/claude-0/-home-user-Cooperative-farming-system/d12ddf18-8441-5538-96af-4f4372ba6d3d/scratchpad/fonts/ko/wanted/variable/WantedSansVariable.ttf"
+     },
+     "text": {
+      "family": "Wanted Sans",
+      "source": "user",
+      "license": "OFL-1.1",
+      "weights": [
+       400,
+       700
+      ],
+      "location": {
+       "wght": 400
+      },
+      "features": [
+       "tnum"
+      ],
+      "case": "as-is",
+      "tracking": 0,
+      "fallback": "\"Apple SD Gothic Neo\",\"Malgun Gothic\",sans-serif",
+      "file": "/tmp/claude-0/-home-user-Cooperative-farming-system/d12ddf18-8441-5538-96af-4f4372ba6d3d/scratchpad/fonts/ko/wanted/variable/WantedSansVariable.ttf"
+     },
+     "mono": null
+    },
+    "logo": {
+     "type": "symbol+wordmark",
+     "concept": "필지 넷이 하나로 모이는 중이다. 마지막 조각이 도착하면 들녘이 완성된다.",
+     "symbol": "logo/symbol.svg",
+     "wordmark": {
+      "text": "모두의 농장",
+      "role": "display",
+      "location": null,
+      "tracking": -25,
+      "case": "as-is"
+     },
+     "monogram": null,
+     "lockups": [
+      "horizontal",
+      "stacked"
+     ],
+     "colors": {
+      "p-settled-1": "brand-1",
+      "p-settled-2": "brand-2",
+      "p-settled-3": "brand-2",
+      "p-arriving": "brand-3",
+      "wordmark": "brand-1"
+     },
+     "tags": [
+      "abstract-geometric"
+     ],
+     "clear_space": {
+      "unit": "cap-height",
+      "multiple": 1,
+      "inferred": true
+     },
+     "min_size": {
+      "px": 24,
+      "mm": 8
+     },
+     "defect": "2차: 기울어진 조각이 둘이라 움직임이 분산됐다 → 도착하는 노란 조각만 기울인다. 연두(#7CC68A)가 바탕 대비 1.96:1 → #3F9F60(3.2:1).",
+     "misuse": [
+      {
+       "do": "stretch"
+      },
+      {
+       "do": "recolour"
+      },
+      {
+       "do": "effects"
+      },
+      {
+       "do": "rearrange"
+      },
+      {
+       "svg": "logo/misuse-1.svg",
+       "label": "조각을 모두 기울이지 않는다. 기울어진 조각은 도착하는 노란 하나뿐이다."
+      },
+      {
+       "svg": "logo/misuse-2.svg",
+       "label": "노란 조각을 반듯하게 놓지 않는다. 기울기가 사라지면 움직임도 사라진다."
+      }
+     ]
+    },
+    "palette_build": {
+     "strategy": null,
+     "accent": "#F2B134",
+     "light_bg": "neutral-50",
+     "dark_bg": null,
+     "neutral_tint": "primary",
+     "neutral_chroma": 0.02,
+     "extra": []
+    },
+    "defaults_used": [
+     {
+      "id": "category-icon",
+      "why": "농업 브랜드의 초록은 업종 코드다. 다만 직접 경쟁 선반(팜맵·농업e지·농어촌공사)은 모두 파랑이라 초록이 오히려 구분점이 되고, 잎·새싹 같은 업종 아이콘은 쓰지 않았다."
+     }
+    ],
+    "rationale": [
+     {
+      "claim": "둥근 모서리와 비대칭 배치는 '부드럽고 움직이는' 인상을 준다(Jiang 2016, Luffarelli 2019b).",
+      "evidence": "limited",
+      "source": "references/logo.md"
+     },
+     {
+      "claim": "경쟁사 3곳의 주색은 파랑 계열이라 초록 주색은 ΔE2000 10 이상 떨어진다.",
+      "evidence": "judgement",
+      "source": "팜맵·농업e지·농지은행 공개 화면 관찰"
+     },
+     {
+      "claim": "완디드 산스는 한글 11,172자와 tnum을 모두 갖춘 OFL 가변 글꼴이다.",
+      "evidence": "measured",
+      "source": "fontTools cmap/GSUB 확인"
+     }
+    ]
+   },
+   "palette": {
+    "schema": "brand-identity/palette@1",
+    "name": "모이는 들녘",
+    "direction": "들녘 초록 바탕, 새순 연두 조각, 볏짚 노랑 하나.",
+    "brand": [
+     {
+      "id": "brand-1",
+      "name": "들녘 초록",
+      "hex": "#1F7A4D",
+      "source": "chosen",
+      "locked": true,
+      "usage": "주색: 마크, 제목, 띠"
+     },
+     {
+      "id": "brand-2",
+      "name": "새순 연두",
+      "hex": "#3F9F60",
+      "source": "chosen",
+      "locked": true,
+      "usage": "마크의 보조 조각, 연한 면"
+     },
+     {
+      "id": "brand-3",
+      "name": "볏짚 노랑",
+      "hex": "#F2B134",
+      "source": "chosen",
+      "locked": true,
+      "usage": "도착하는 필지, 강조 한 곳"
+     }
+    ],
+    "feels": [
+     "함께",
+     "든든한",
+     "쉬운"
+    ]
+   },
+   "symbol_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><path id=\"p-settled-1\" data-color=\"brand-1\" d=\"M16.00 11.00L40.00 11.00A9 9 0 0 1 49.00 20.00L49.00 36.00A9 9 0 0 1 40.00 45.00L16.00 45.00A9 9 0 0 1 7.00 36.00L7.00 20.00A9 9 0 0 1 16.00 11.00Z\"/><path id=\"p-settled-2\" data-color=\"brand-2\" d=\"M20.00 50.00L36.00 50.00A9 9 0 0 1 45.00 59.00L45.00 79.00A9 9 0 0 1 36.00 88.00L20.00 88.00A9 9 0 0 1 11.00 79.00L11.00 59.00A9 9 0 0 1 20.00 50.00Z\"/><path id=\"p-settled-3\" data-color=\"brand-2\" d=\"M60.00 11.00L78.00 11.00A9 9 0 0 1 87.00 20.00L87.00 32.00A9 9 0 0 1 78.00 41.00L60.00 41.00A9 9 0 0 1 51.00 32.00L51.00 20.00A9 9 0 0 1 60.00 11.00Z\"/><path id=\"p-arriving\" data-color=\"brand-3\" d=\"M59.70 55.98L79.11 51.15A9 9 0 0 1 90.02 57.70L94.85 77.11A9 9 0 0 1 88.30 88.02L68.89 92.85A9 9 0 0 1 57.98 86.30L53.15 66.89A9 9 0 0 1 59.70 55.98Z\"/></svg>",
+   "symbol_small_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><path id=\"s1\" data-color=\"brand-1\" d=\"M15.00 5.00L37.00 5.00A10 10 0 0 1 47.00 15.00L47.00 37.00A10 10 0 0 1 37.00 47.00L15.00 47.00A10 10 0 0 1 5.00 37.00L5.00 15.00A10 10 0 0 1 15.00 5.00Z\"/><path id=\"s2\" data-color=\"brand-2\" d=\"M63.00 5.00L85.00 5.00A10 10 0 0 1 95.00 15.00L95.00 37.00A10 10 0 0 1 85.00 47.00L63.00 47.00A10 10 0 0 1 53.00 37.00L53.00 15.00A10 10 0 0 1 63.00 5.00Z\"/><path id=\"s3\" data-color=\"brand-2\" d=\"M15.00 53.00L37.00 53.00A10 10 0 0 1 47.00 63.00L47.00 85.00A10 10 0 0 1 37.00 95.00L15.00 95.00A10 10 0 0 1 5.00 85.00L5.00 63.00A10 10 0 0 1 15.00 53.00Z\"/><path id=\"s4\" data-color=\"brand-3\" d=\"M60.52 56.23L82.19 52.41A10 10 0 0 1 93.77 60.52L97.59 82.19A10 10 0 0 1 89.48 93.77L67.81 97.59A10 10 0 0 1 56.23 89.48L52.41 67.81A10 10 0 0 1 60.52 56.23Z\"/></svg>",
+   "wordmark_detail_svg": null,
+   "misuse_svgs": {
+    "misuse-1": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><path id=\"a\" data-color=\"brand-1\" d=\"M13.23 13.34L36.87 9.17A9 9 0 0 1 47.29 16.47L50.07 32.23A9 9 0 0 1 42.77 42.66L19.13 46.83A9 9 0 0 1 8.71 39.53L5.93 23.77A9 9 0 0 1 13.23 13.34Z\"/><path id=\"b\" data-color=\"brand-2\" d=\"M24.13 48.75L39.78 52.08A9 9 0 0 1 46.71 62.75L42.55 82.32A9 9 0 0 1 31.87 89.25L16.22 85.92A9 9 0 0 1 9.29 75.25L13.45 55.68A9 9 0 0 1 24.13 48.75Z\"/><path id=\"c\" data-color=\"brand-2\" d=\"M62.46 9.78L80.24 12.59A9 9 0 0 1 87.72 22.89L85.84 34.74A9 9 0 0 1 75.54 42.22L57.76 39.41A9 9 0 0 1 50.28 29.11L52.16 17.26A9 9 0 0 1 62.46 9.78Z\"/><path id=\"d\" data-color=\"brand-3\" d=\"M59.70 55.98L79.11 51.15A9 9 0 0 1 90.02 57.70L94.85 77.11A9 9 0 0 1 88.30 88.02L68.89 92.85A9 9 0 0 1 57.98 86.30L53.15 66.89A9 9 0 0 1 59.70 55.98Z\"/></svg>",
+    "misuse-2": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><path id=\"a\" data-color=\"brand-1\" d=\"M16.00 11.00L40.00 11.00A9 9 0 0 1 49.00 20.00L49.00 36.00A9 9 0 0 1 40.00 45.00L16.00 45.00A9 9 0 0 1 7.00 36.00L7.00 20.00A9 9 0 0 1 16.00 11.00Z\"/><path id=\"b\" data-color=\"brand-2\" d=\"M20.00 50.00L36.00 50.00A9 9 0 0 1 45.00 59.00L45.00 79.00A9 9 0 0 1 36.00 88.00L20.00 88.00A9 9 0 0 1 11.00 79.00L11.00 59.00A9 9 0 0 1 20.00 50.00Z\"/><path id=\"c\" data-color=\"brand-2\" d=\"M60.00 11.00L78.00 11.00A9 9 0 0 1 87.00 20.00L87.00 32.00A9 9 0 0 1 78.00 41.00L60.00 41.00A9 9 0 0 1 51.00 32.00L51.00 20.00A9 9 0 0 1 60.00 11.00Z\"/><path id=\"d\" data-color=\"brand-3\" d=\"M60.00 49.00L80.00 49.00A9 9 0 0 1 89.00 58.00L89.00 78.00A9 9 0 0 1 80.00 87.00L60.00 87.00A9 9 0 0 1 51.00 78.00L51.00 58.00A9 9 0 0 1 60.00 49.00Z\"/></svg>"
+   }
+  },
+  {
+   "identity": {
+    "set": {
+     "id": "B",
+     "name": "한 줄 경로",
+     "recommended": false,
+     "mechanism": "트랙터가 한 번에 도는 경로 한 줄: 세 필지를 꿰는 고랑이 마크가 되고, 명조의 획이 그 선을 잇고, 흙 갈색 바탕에 새순 연두 선 하나.",
+     "expression_move": "흙빛 어두운 바탕. 글과 마크는 모두 그 위에 밝게 놓인다.",
+     "differs_by": "밝은 흰 바탕과 고딕 일색인 농업 공공 서비스와 달리 어두운 흙 바탕에 명조를 쓴다. 문서·증서의 무게를 가져와 '든든함'을 맡는다."
+    },
+    "axes": {
+     "warm_cool": -2,
+     "playful_serious": 1,
+     "quiet_loud": 1,
+     "friend_authority": 1
+    },
+    "type": {
+     "pairing_mode": "contrast",
+     "display": {
+      "family": "Noto Serif KR",
+      "source": "user",
+      "license": "OFL-1.1",
+      "weights": [
+       900
+      ],
+      "location": {
+       "wght": 900
+      },
+      "features": [],
+      "case": "as-is",
+      "tracking": -10,
+      "fallback": "\"Apple SD Gothic Neo\",\"Malgun Gothic\",sans-serif",
+      "file": "/tmp/claude-0/-home-user-Cooperative-farming-system/d12ddf18-8441-5538-96af-4f4372ba6d3d/scratchpad/fonts/ko/NotoSerifKR[wght].ttf"
+     },
+     "text": {
+      "family": "Pretendard",
+      "source": "user",
+      "license": "OFL-1.1",
+      "weights": [
+       400,
+       700
+      ],
+      "location": {},
+      "features": [
+       "tnum"
+      ],
+      "case": "as-is",
+      "tracking": 0,
+      "fallback": "\"Apple SD Gothic Neo\",\"Malgun Gothic\",sans-serif",
+      "file": "/root/.fonts/Pretendard-Regular.ttf"
+     },
+     "mono": null
+    },
+    "logo": {
+     "type": "symbol+wordmark",
+     "concept": "들녘 하나를 한 줄 경로가 가로지른다. 고랑은 필지에서 파낸 홈이라 한 색으로 찍어도 남는다.",
+     "symbol": "logo/symbol.svg",
+     "wordmark": {
+      "text": "모두의 농장",
+      "role": "display",
+      "location": null,
+      "tracking": -10,
+      "case": "as-is"
+     },
+     "monogram": null,
+     "lockups": [
+      "horizontal",
+      "stacked"
+     ],
+     "colors": {
+      "field": "brand-1",
+      "route": "brand-2",
+      "wordmark": "text"
+     },
+     "tags": [
+      "abstract-geometric"
+     ],
+     "clear_space": {
+      "unit": "cap-height",
+      "multiple": 1,
+      "inferred": true
+     },
+     "min_size": {
+      "px": 24,
+      "mm": 8
+     },
+     "defect": "2차: 세 필지+점이 가방·사람으로 읽혔다 → 들녘 하나에 지그재그 고랑 하나로 단순화. 연두 #B9D85C 1.41:1 → #528C28."
+    },
+    "palette_build": {
+     "strategy": null,
+     "accent": "#528C28",
+     "light_bg": "#F4EFE6",
+     "dark_bg": "#2A1C12",
+     "neutral_tint": "primary",
+     "neutral_chroma": 0.03,
+     "extra": []
+    },
+    "defaults_used": [],
+    "rationale": [
+     {
+      "claim": "어두운 바탕은 색의 부정적 읽기를 끌어낼 수 있어(Celhay 2024) 연두 선을 작게 두었다.",
+      "evidence": "strong",
+      "source": "references/color.md"
+     },
+     {
+      "claim": "노토 세리프 KR은 한글 11,172자를 갖춘 OFL 가변 글꼴이고, 본문은 tnum이 있는 프리텐다드가 맡는다.",
+      "evidence": "measured",
+      "source": "fontTools 확인"
+     }
+    ],
+    "card": {
+     "ground": "dark"
+    }
+   },
+   "palette": {
+    "schema": "brand-identity/palette@1",
+    "name": "한 줄 경로",
+    "direction": "흙 갈색 바탕 위 밝은 글, 새순 연두 선 하나.",
+    "brand": [
+     {
+      "id": "brand-1",
+      "name": "흙 갈색",
+      "hex": "#3E2A1C",
+      "source": "chosen",
+      "locked": true,
+      "usage": "주색: 바탕, 마크의 필지"
+     },
+     {
+      "id": "brand-2",
+      "name": "새순 연두",
+      "hex": "#528C28",
+      "source": "chosen",
+      "locked": true,
+      "usage": "경로 선, 강조"
+     }
+    ],
+    "feels": [
+     "든든한",
+     "꾸준한",
+     "현장"
+    ]
+   },
+   "symbol_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><path id=\"field\" data-color=\"brand-1\" d=\"M24.00 4.00L76.00 4.00A20 20 0 0 1 96.00 24.00L96.00 76.00A20 20 0 0 1 76.00 96.00L24.00 96.00A20 20 0 0 1 4.00 76.00L4.00 24.00A20 20 0 0 1 24.00 4.00Z\"/><path id=\"g1\" data-op=\"subtract\" d=\"M14.00 69.00L34.00 69.00A7.0 7.0 0 0 1 41.00 76.00L41.00 76.00A7.0 7.0 0 0 1 34.00 83.00L14.00 83.00A7.0 7.0 0 0 1 7.00 76.00L7.00 76.00A7.0 7.0 0 0 1 14.00 69.00Z\"/><path id=\"g2\" data-op=\"subtract\" d=\"M34.00 39.00L34.00 39.00A7.0 7.0 0 0 1 41.00 46.00L41.00 76.00A7.0 7.0 0 0 1 34.00 83.00L34.00 83.00A7.0 7.0 0 0 1 27.00 76.00L27.00 46.00A7.0 7.0 0 0 1 34.00 39.00Z\"/><path id=\"g3\" data-op=\"subtract\" d=\"M34.00 39.00L66.00 39.00A7.0 7.0 0 0 1 73.00 46.00L73.00 46.00A7.0 7.0 0 0 1 66.00 53.00L34.00 53.00A7.0 7.0 0 0 1 27.00 46.00L27.00 46.00A7.0 7.0 0 0 1 34.00 39.00Z\"/><path id=\"g4\" data-op=\"subtract\" d=\"M66.00 15.00L66.00 15.00A7.0 7.0 0 0 1 73.00 22.00L73.00 46.00A7.0 7.0 0 0 1 66.00 53.00L66.00 53.00A7.0 7.0 0 0 1 59.00 46.00L59.00 22.00A7.0 7.0 0 0 1 66.00 15.00Z\"/><path id=\"g5\" data-op=\"subtract\" d=\"M66.00 15.00L86.00 15.00A7.0 7.0 0 0 1 93.00 22.00L93.00 22.00A7.0 7.0 0 0 1 86.00 29.00L66.00 29.00A7.0 7.0 0 0 1 59.00 22.00L59.00 22.00A7.0 7.0 0 0 1 66.00 15.00Z\"/><path id=\"route\" data-color=\"brand-2\" d=\"M14.00 72.50L34.00 72.50A3.5 3.5 0 0 1 37.50 76.00L37.50 76.00A3.5 3.5 0 0 1 34.00 79.50L14.00 79.50A3.5 3.5 0 0 1 10.50 76.00L10.50 76.00A3.5 3.5 0 0 1 14.00 72.50Z\"/><path id=\"route-2\" data-color=\"brand-2\" data-op=\"union\" d=\"M34.00 42.50L34.00 42.50A3.5 3.5 0 0 1 37.50 46.00L37.50 76.00A3.5 3.5 0 0 1 34.00 79.50L34.00 79.50A3.5 3.5 0 0 1 30.50 76.00L30.50 46.00A3.5 3.5 0 0 1 34.00 42.50Z\"/><path id=\"route-3\" data-color=\"brand-2\" data-op=\"union\" d=\"M34.00 42.50L66.00 42.50A3.5 3.5 0 0 1 69.50 46.00L69.50 46.00A3.5 3.5 0 0 1 66.00 49.50L34.00 49.50A3.5 3.5 0 0 1 30.50 46.00L30.50 46.00A3.5 3.5 0 0 1 34.00 42.50Z\"/><path id=\"route-4\" data-color=\"brand-2\" data-op=\"union\" d=\"M66.00 18.50L66.00 18.50A3.5 3.5 0 0 1 69.50 22.00L69.50 46.00A3.5 3.5 0 0 1 66.00 49.50L66.00 49.50A3.5 3.5 0 0 1 62.50 46.00L62.50 22.00A3.5 3.5 0 0 1 66.00 18.50Z\"/><path id=\"route-5\" data-color=\"brand-2\" data-op=\"union\" d=\"M66.00 18.50L86.00 18.50A3.5 3.5 0 0 1 89.50 22.00L89.50 22.00A3.5 3.5 0 0 1 86.00 25.50L66.00 25.50A3.5 3.5 0 0 1 62.50 22.00L62.50 22.00A3.5 3.5 0 0 1 66.00 18.50Z\"/></svg>",
+   "symbol_small_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><path id=\"f\" data-color=\"brand-1\" d=\"M22.00 2.00L78.00 2.00A20 20 0 0 1 98.00 22.00L98.00 78.00A20 20 0 0 1 78.00 98.00L22.00 98.00A20 20 0 0 1 2.00 78.00L2.00 22.00A20 20 0 0 1 22.00 2.00Z\"/><path id=\"g1\" data-op=\"subtract\" d=\"M12.00 62.00L36.00 62.00A10.0 10.0 0 0 1 46.00 72.00L46.00 72.00A10.0 10.0 0 0 1 36.00 82.00L12.00 82.00A10.0 10.0 0 0 1 2.00 72.00L2.00 72.00A10.0 10.0 0 0 1 12.00 62.00Z\"/><path id=\"g2\" data-op=\"subtract\" d=\"M36.00 20.00L36.00 20.00A10.0 10.0 0 0 1 46.00 30.00L46.00 72.00A10.0 10.0 0 0 1 36.00 82.00L36.00 82.00A10.0 10.0 0 0 1 26.00 72.00L26.00 30.00A10.0 10.0 0 0 1 36.00 20.00Z\"/><path id=\"g3\" data-op=\"subtract\" d=\"M36.00 20.00L88.00 20.00A10.0 10.0 0 0 1 98.00 30.00L98.00 30.00A10.0 10.0 0 0 1 88.00 40.00L36.00 40.00A10.0 10.0 0 0 1 26.00 30.00L26.00 30.00A10.0 10.0 0 0 1 36.00 20.00Z\"/><path id=\"r1\" data-color=\"brand-2\" d=\"M12.00 67.00L36.00 67.00A5.0 5.0 0 0 1 41.00 72.00L41.00 72.00A5.0 5.0 0 0 1 36.00 77.00L12.00 77.00A5.0 5.0 0 0 1 7.00 72.00L7.00 72.00A5.0 5.0 0 0 1 12.00 67.00Z\"/><path id=\"r2\" data-color=\"brand-2\" data-op=\"union\" d=\"M36.00 25.00L36.00 25.00A5.0 5.0 0 0 1 41.00 30.00L41.00 72.00A5.0 5.0 0 0 1 36.00 77.00L36.00 77.00A5.0 5.0 0 0 1 31.00 72.00L31.00 30.00A5.0 5.0 0 0 1 36.00 25.00Z\"/><path id=\"r3\" data-color=\"brand-2\" data-op=\"union\" d=\"M36.00 25.00L88.00 25.00A5.0 5.0 0 0 1 93.00 30.00L93.00 30.00A5.0 5.0 0 0 1 88.00 35.00L36.00 35.00A5.0 5.0 0 0 1 31.00 30.00L31.00 30.00A5.0 5.0 0 0 1 36.00 25.00Z\"/></svg>",
+   "wordmark_detail_svg": null
+  },
+  {
+   "identity": {
+    "set": {
+     "id": "C",
+     "name": "모 한 글자",
+     "recommended": false,
+     "mechanism": "이름 자체가 마크: 고딕 A1 블랙으로 굵게 쓴 '모두의 농장'과 첫 글자 '모' 모노그램, 바탕 전체가 모 노랑 한 색.",
+     "expression_move": "노랑 바탕. 판넬 한 장이 통째로 노랗다.",
+     "differs_by": "그림 마크 없이 글자만으로 선다. 초록·파랑이 늘어선 농업 부스에서 유일한 노랑 판넬이 된다."
+    },
+    "axes": {
+     "warm_cool": -1,
+     "playful_serious": -2,
+     "quiet_loud": 2,
+     "friend_authority": -2
+    },
+    "type": {
+     "pairing_mode": "contrast",
+     "display": {
+      "family": "Gothic A1",
+      "source": "user",
+      "license": "OFL-1.1",
+      "weights": [
+       900
+      ],
+      "location": {},
+      "features": [],
+      "case": "as-is",
+      "tracking": -30,
+      "fallback": "\"Apple SD Gothic Neo\",\"Malgun Gothic\",sans-serif",
+      "file": "/tmp/claude-0/-home-user-Cooperative-farming-system/d12ddf18-8441-5538-96af-4f4372ba6d3d/scratchpad/fonts/ko/GothicA1-Black.ttf"
+     },
+     "text": {
+      "family": "Wanted Sans",
+      "source": "user",
+      "license": "OFL-1.1",
+      "weights": [
+       400,
+       700
+      ],
+      "location": {
+       "wght": 400
+      },
+      "features": [
+       "tnum"
+      ],
+      "case": "as-is",
+      "tracking": 0,
+      "fallback": "\"Apple SD Gothic Neo\",\"Malgun Gothic\",sans-serif",
+      "file": "/tmp/claude-0/-home-user-Cooperative-farming-system/d12ddf18-8441-5538-96af-4f4372ba6d3d/scratchpad/fonts/ko/wanted/variable/WantedSansVariable.ttf"
+     },
+     "mono": null
+    },
+    "logo": {
+     "type": "wordmark",
+     "concept": "굵은 글자 '모두의 농장'. 작은 자리에는 '모' 한 글자.",
+     "symbol": null,
+     "wordmark": {
+      "text": "모두의 농장",
+      "role": "display",
+      "location": null,
+      "tracking": -30,
+      "case": "as-is"
+     },
+     "monogram": null,
+     "lockups": [
+      "horizontal"
+     ],
+     "colors": {
+      "wordmark": "text",
+      "ridge": "accent",
+      "tile": "brand-1",
+      "mo": "text"
+     },
+     "tags": [
+      "letterform"
+     ],
+     "clear_space": {
+      "unit": "cap-height",
+      "multiple": 1,
+      "inferred": true
+     },
+     "min_size": {
+      "px": 24,
+      "mm": 8
+     },
+     "defect": "2차: 글자만 있어 '기성 글꼴'로 읽혔다 → 첫 글자 '모' 아래 글자 폭만큼의 초록 논둑을 더해 고유 디테일을 만든다."
+    },
+    "palette_build": {
+     "strategy": null,
+     "accent": "#2F7D4F",
+     "light_bg": "#F4CF3A",
+     "dark_bg": null,
+     "neutral_tint": "primary",
+     "neutral_chroma": 0.03,
+     "extra": []
+    },
+    "defaults_used": [
+     {
+      "id": "initial-in-rounded-square",
+      "why": "작은 마크(파비콘·앱 아이콘)에서만 쓴다. 바탕 타일이 곧 앱 아이콘 컨테이너이며, 큰 자리에서는 워드마크만 쓴다."
+     }
+    ],
+    "rationale": [
+     {
+      "claim": "노랑은 밝을 때만 선명하므로(색 물리) 먹색 글자와 짝지었다.",
+      "evidence": "strong",
+      "source": "references/color.md"
+     },
+     {
+      "claim": "글자만으로 된 안을 하나 둬 '그림 마크 + 워드마크' 기본값(97~100%)에서 벗어났다.",
+      "evidence": "limited",
+      "source": "references/ai-defaults.md"
+     }
+    ],
+    "card": {
+     "ground": "brand-1"
+    }
+   },
+   "palette": {
+    "schema": "brand-identity/palette@1",
+    "name": "모 한 글자",
+    "direction": "모 노랑 바탕에 먹색 글자, 초록 한 점.",
+    "brand": [
+     {
+      "id": "brand-1",
+      "name": "모 노랑",
+      "hex": "#F4CF3A",
+      "source": "chosen",
+      "locked": true,
+      "usage": "바탕, 타일"
+     },
+     {
+      "id": "brand-2",
+      "name": "먹",
+      "hex": "#1B2420",
+      "source": "chosen",
+      "locked": true,
+      "usage": "글자, 워드마크"
+     }
+    ],
+    "feels": [
+     "쉬운",
+     "밝은",
+     "함께"
+    ]
+   },
+   "symbol_svg": null,
+   "symbol_small_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><rect id=\"tile\" x=\"0\" y=\"0\" width=\"100\" height=\"100\" rx=\"24\" data-color=\"brand-1\"/><path id=\"mo\" data-glyphs=\"모\" data-cap=\"58\" data-x=\"50\" data-baseline=\"78\" data-anchor=\"middle\" data-color=\"text\"/></svg>",
+   "wordmark_detail_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect id=\"ridge\" x=\"5.49\" y=\"110\" width=\"116\" height=\"13\" rx=\"6.5\" data-color=\"accent\"/></svg>"
+  }
+ ]
+}

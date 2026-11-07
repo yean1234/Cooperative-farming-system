@@ -1,0 +1,82 @@
+{
+ "units": "wordmark: cap height 100, cap top y=0, baseline y=100, x from the pen origin; index = data-glyph",
+ "text": "모두의 농장",
+ "glyphs": [
+  {
+   "index": 1,
+   "char": "모",
+   "x0": 2.9,
+   "x1": 119.48,
+   "pen_x": 0.0,
+   "advance": 122.24,
+   "cap_top": 0,
+   "baseline": 100,
+   "stems": [
+    [
+     49.86,
+     72.31
+    ]
+   ]
+  },
+  {
+   "index": 2,
+   "char": "두",
+   "x0": 121.6,
+   "x1": 238.25,
+   "pen_x": 118.7,
+   "advance": 122.24,
+   "cap_top": 0,
+   "baseline": 100,
+   "stems": []
+  },
+  {
+   "index": 3,
+   "char": "의",
+   "x0": 240.65,
+   "x1": 349.14,
+   "pen_x": 237.4,
+   "advance": 122.24,
+   "cap_top": 0,
+   "baseline": 100,
+   "stems": [
+    [
+     326.77,
+     349.14
+    ]
+   ]
+  },
+  {
+   "index": 4,
+   "char": " ",
+   "x0": null,
+   "x1": null,
+   "pen_x": 356.1,
+   "advance": 33.49,
+   "cap_top": 0,
+   "baseline": 100,
+   "stems": []
+  },
+  {
+   "index": 5,
+   "char": "농",
+   "x0": 389.1,
+   "x1": 505.68,
+   "pen_x": 386.06,
+   "advance": 122.24,
+   "cap_top": 0,
+   "baseline": 100,
+   "stems": []
+  },
+  {
+   "index": 6,
+   "char": "장",
+   "x0": 504.97,
+   "x1": 625.83,
+   "pen_x": 504.77,
+   "advance": 122.24,
+   "cap_top": 0,
+   "baseline": 100,
+   "stems": []
+  }
+ ]
+}
