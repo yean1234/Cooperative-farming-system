@@ -118,6 +118,7 @@ data/regions/   실측 지도 JSON(흥해)
 web/            화면(HTML·CSS·JS, 빌드 과정 없음)
 tests/          pytest 38개
 docs/           기획 문서, 실측 데이터 연동 문서, 화면 이미지
+docs/panel/     비즈니스톤 판넬(HTML → 1220×1820mm PDF, 캡처·QR·빌드 스크립트)
 ```
 
 ## API
