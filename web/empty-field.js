@@ -187,6 +187,8 @@ const krw = (v) => {
 };
 const ha = (v) => `${v.toFixed(1)}ha`;
 const chip = (v) => `<span class="chip ${VERD[v][1]}">${VERD[v][0]}</span>`;
+// 대안 카드·추천에서는 '기준 미달'(지원 기준)과 헷갈리지 않게 목표 판정임을 밝힌다
+const goalChip = (v) => `<span class="chip ${VERD[v][1]}">목표 ${VERD[v][0]}</span>`;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const SVGNS = "http://www.w3.org/2000/svg";
 function el(tag, attrs = {}, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
@@ -209,7 +211,7 @@ function recompute() {
   if (!ranked.some((o) => o.key === S.sel)) S.sel = (ranked.find((o) => o.rank === 1) || ranked[0]).key;
   const sel = ranked.find((o) => o.key === S.sel);
   VIEW = { ranked, sel, stage, holes, candFarms: candFarms || [], keep, full, defTarget, ms: performance.now() - t0 };
-  renderStepper(); renderDecide(); renderRefused(); renderJudge(); renderMap(); renderOptions(); renderMachine(); renderPayout();
+  renderDecide(); renderCond(); renderRefused(); renderJudge(); renderMap(); renderOptions(); renderMachine(); renderPayout();
   if ($("sheetDlg").open) renderSheet();
   writeHash();
 }
@@ -245,74 +247,97 @@ function flash(note) {
     const n = $(id); if (!n) return;
     n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash");
   });
-  if (note) { const s = $("recalc"); s.textContent = `${note} → 다시 계산했습니다`; s.classList.remove("flash"); void s.offsetWidth; s.classList.add("flash"); }
+  if (note) { const s = $("recalc"); s.textContent = `${note} → 다시 계산했어요`; s.classList.remove("flash"); void s.offsetWidth; s.classList.add("flash"); }
 }
 
-function renderStepper() {
-  document.querySelectorAll("#stepper li").forEach((li) => {
-    const on = Number(li.dataset.stage) === VIEW.stage;
-    li.classList.toggle("on", on);
-    if (on) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
-  });
-}
+// 판정 아이콘: 동그라미 안에 ✓ · ✕ · ! (안쪽 기호 색은 CSS의 --ic-ink). label이 있으면 화면 읽기 프로그램이 읽는다
+const ICON_PATH = { ok: "M6 10.3l2.7 2.7L14.2 7.4", no: "M7 7l6 6M13 7l-6 6", warn: "M10 5.6v5.2M10 14.3v.1" };
+const ic = (k, label = "") => `<span class="ic ic-${k}"${label ? ` role="img" aria-label="${label}"` : ' aria-hidden="true"'}><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="${ICON_PATH[k]}" fill="none" stroke="var(--ic-ink, #fff)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+// 빈 상태 그림: 필지 네 칸 중 한 칸이 빈 모습
+const PARCEL_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="6" width="11" height="9" rx="2" fill="currentColor" fill-opacity=".18"/><rect x="17" y="6" width="11" height="9" rx="2" fill="currentColor" fill-opacity=".18"/><rect x="4" y="17" width="11" height="9" rx="2" fill="currentColor" fill-opacity=".18"/><rect x="17" y="17" width="11" height="9" rx="2" stroke-dasharray="3 2.5"/></svg>`;
+const motion = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+const goTo = (id) => $(id).scrollIntoView({ block: "start", behavior: motion() });
 
 // 결론: 거절 당일 사무장이 먼저 묻는 세 가지(지원 기준 유지 · 순수익과 배당 영향 · 다음 할 일)를 맨 위에 둔다
 const pct = (a, b) => (b ? (a / b - 1) * 100 : 0);
 const signPct = (v) => (Math.abs(v) < 0.05 ? "0.0%" : `${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}%`);
-const STAGE = ["① 기본 필지화", "② 구멍 · 기준 충족", "③ 구멍 · 기준 미충족"];
+const STAGE = ["① 기본 필지화", "② 구멍 · 기준 충족", "③ 구멍 · 기준 미충족"];   // 설명 자료(인쇄)에 쓴다
+const STAGE_LBL = ["기본 필지화", "구멍 · 기준 충족", "구멍 · 기준 미충족"];
 function renderDecide() {
   const { stage, keep, holes, full, ranked } = VIEW, e = keep.ev;
   const best = ranked.find((o) => o.rank === 1);
   const goalGap = S.target - e.net.mid;
-  const head = stage === 0
-    ? (keep.meets ? "지도에서 거절한 농가를 누르면, 빼고 갈지 메울지 바로 판정합니다" : `전원 참여해도 지원 기준에 못 미칩니다 (${esc(keep.why)})`)
-    : stage === 1
-      ? (goalGap > 0 ? `빼고 가도 지원 기준은 지킵니다. 다만 목표 순수익에 ${krw(goalGap)} 모자랍니다` : "빼고 가도 됩니다. 지원 기준과 목표 순수익을 모두 지킵니다")
-      : `메워야 합니다. 그대로면 ${esc(keep.why)}으로 지원 대상에서 빠집니다`;
-  const sec = `판정 ${Math.max(0.01, VIEW.ms / 1000).toFixed(2)}초`;
-  const sub = stage === 0
-    ? `참여 ${e.farms}농가 · ${ha(e.area)} · 이 상태가 모든 비교의 기준선입니다 · ${sec}`
-    : `거절 ${refusedFarms().size}농가 · ${holes.length}필지 · ${ha(areaOf(holes))} 빠짐 · ${sec}`;
-  const areaOk = e.area + 1e-9 >= S.areaMin, farmOk = e.farms >= S.farmMin;
+  const areaOk = e.area + 1e-9 >= S.areaMin, farmOk = e.farms >= S.farmMin, meets = areaOk && farmOk;
   const dNet = pct(e.net.mid, full.net.mid), dPer = pct(e.per.mid, full.per.mid);
-  const perNote = stage === 0 ? "면적대로 나눈 연 배당 · 농가 설득용"
-    : Math.abs(dPer) < 2 ? `전원 참여 대비 ${signPct(dPer)} · 땅과 받을 사람이 함께 빠져 거의 그대로`
-      : `전원 참여 대비 ${signPct(dPer)}`;
+  const nRef = refusedFarms().size, holeHa = areaOf(holes);
+  // 판정 색: 거절 전 연한 초록(안내) · 빼고 가도 됨 초록 · 목표 순수익 미달 주황 · 지원 기준 미달 빨강
+  const tone = stage === 0 ? (keep.meets ? "idle" : "bad") : stage === 1 ? (goalGap > 0 ? "warn" : "good") : "bad";
+  const title = stage === 0 ? (keep.meets ? "거절한 농가를 지도에서 눌러 보세요" : "전원 참여해도 지원 기준에 못 미쳐요")
+    : stage === 1 ? "빼고 가도 돼요" : "메워야 해요";
+  const desc = stage === 0
+    ? (keep.meets ? `지금은 ${e.farms}농가, ${ha(e.area)}가 모두 참여한 상태예요. 거절이 나오면 이 상태와 비교해요.` : `${esc(keep.why)}이에요. 계산 조건의 지원 기준을 확인하세요.`)
+    : stage === 1
+      ? (goalGap > 0 ? `지원 기준은 지켜요. 다만 목표 순수익에 ${krw(goalGap)} 모자라요.` : "지원 기준과 목표 순수익을 모두 지켜요.")
+      : `그대로 가면 ${esc(keep.why)}으로 지원 대상에서 빠져요.`;
+  const track = STAGE_LBL.map((s, i) => `<li${i === stage ? ' class="on" aria-current="step"' : ""}>${s}</li>`).join("");
+  const action = stage === 0
+    ? `<button type="button" class="btn on-panel" data-go="mapSec">지도에서 시작하기 ↓</button>`
+    : `<button type="button" class="btn on-panel" data-sheet>설명 자료 만들기</button>`;
+  // 지표 칸: 이름 · 값 · 한 줄 설명. 기준을 못 넘으면 칸 전체를 빨갛게
+  const m = (k, v, d, cls = "", icon = "") => `<div class="m ${cls}"><div class="m-k"><span>${k}</span>${icon}</div><div class="m-v">${v}</div><div class="m-d">${d}</div></div>`;
+  const goalIcon = { safe: ic("ok", "목표 안전"), ok: ic("warn", "목표 가능"), bad: ic("no", "목표 미달") }[keep.v];
+  const perNote = stage === 0 ? "면적대로 나눈 금액"
+    : `전원 참여 대비 ${signPct(dPer)}${Math.abs(dPer) < 2 ? ", 거의 그대로" : ""}`;
+  const metrics = [
+    m("지원 기준", meets ? "충족" : "미충족",
+      `<span class="${areaOk ? "" : "fail"}">면적 ${ha(e.area)} / ${S.areaMin}ha</span> · <span class="${farmOk ? "" : "fail"}">농가 ${e.farms} / ${S.farmMin}명</span>`,
+      meets ? "" : "no", ic(meets ? "ok" : "no", meets ? "충족" : "미충족")),
+    m("법인 순수익 (연)", krw(e.net.mid),
+      stage ? `전원 참여 대비 <span class="${dNet < -0.05 ? "fail" : ""}">${signPct(dNet)}</span>` : `범위 ${eokS(e.net.lo)}~${eokS(e.net.hi)}원`, "", goalIcon),
+    m("평당 배당 (연)", won(e.per.mid), perNote),
+    stage ? m("빠진 땅", ha(holeHa), `거절 ${nRef}농가 · ${holes.length}필지`)
+      : m("참여 농가", `${e.farms}농가`, `${ha(e.area)} · 필지 ${e.set.size}개`),
+  ].join("");
+  // 추천 대안: 거절 전에는 쓰는 법 세 단계를 대신 보인다
   let next;
-  if (stage === 0) next = `<div class="n sm">거절이 나오면 여기에 1순위 대안이 뜹니다</div>`;
-  else if (!best) next = `<div class="n sm fail">기준을 넘는 대안이 없습니다</div><div class="d">주변 농가를 더 설득하거나 지원 기준을 다시 확인하세요</div>`;
-  else if (best.key === "keep") next = `<div class="n sm">그대로 진행 ${chip(best.v)}</div><div class="d">추가로 설득할 농가가 없습니다</div>`;
-  else next = `<div class="n sm">1순위 ${esc(best.name)} ${chip(best.v)}</div><div class="d">${esc(best.sub)} · 설득 ${best.persuade}농가</div>
-      <button type="button" class="btn small" data-pick="${esc(best.key)}">지도에서 보기</button>`;
+  if (stage === 0) next = `<ol class="howto" aria-label="쓰는 법"><li><b>1</b>지도에서 거절한 농가를 눌러요</li><li><b>2</b>빼고 갈지, 메울지 판정을 봐요</li><li><b>3</b>설명 자료를 뽑아 보고해요</li></ol>`;
+  else if (!best) next = `<div class="rec none"><span class="rec-badge">추천 대안</span><p class="rec-t">기준을 넘는 대안이 없어요</p><p class="rec-d">주변 농가를 더 설득하거나, 지원 기준을 다시 확인하세요.</p></div>`;
+  else if (best.key === "keep") next = `<div class="rec"><span class="rec-badge">추천 대안</span><p class="rec-t">그대로 진행 ${goalChip(best.v)}</p><p class="rec-d">땅을 더 들이지 않아도 돼요. 새로 설득할 농가가 없어요.</p></div>`;
+  else next = `<div class="rec"><span class="rec-badge">추천 대안</span><p class="rec-t">${esc(best.name)} ${goalChip(best.v)}</p>
+      <p class="rec-d">${esc(best.sub)} · 설득 ${best.persuade}농가 · 순수익 ${krw(best.ev.net.mid)}</p>
+      <button type="button" class="text-btn" data-pick="${esc(best.key)}">지도에서 보기 →</button></div>`;
   const d = $("decide");
-  d.className = `decide s${stage}`;
+  d.className = `decide t-${tone}`;
   d.innerHTML = `
-    <div class="verdict">
-      <span class="stage-tag">${STAGE[stage]}</span>
-      <p class="headline">${head}</p>
-      <p class="d">${sub}</p>
+    <div class="v-panel">
+      <p class="v-k">${stage ? "지금 판정" : "시작하기"}${stage ? `<span class="v-meta">거절 ${nRef}농가 · ${ha(holeHa)} 빠짐</span>` : ""}</p>
+      <p class="v-title">${title}</p>
+      <p class="v-desc">${desc}</p>
+      <ol class="track" aria-label="지금 상황">${track}</ol>
+      <div class="v-actions">${action}</div>
     </div>
-    <div class="tiles">
-      <div class="tile ${areaOk && farmOk ? "ok" : "no"}">
-        <div class="k">지원 기준${stage ? " · 그대로 갈 때" : ""}</div>
-        <div class="n">${areaOk && farmOk ? "충족 ✓" : "미충족 ✗"}</div>
-        <div class="d"><span class="${areaOk ? "pass" : "fail"}">면적 ${ha(e.area)} / ${S.areaMin}ha</span><br><span class="${farmOk ? "pass" : "fail"}">농가 ${e.farms}명 / ${S.farmMin}명</span></div>
-      </div>
-      <div class="tile">
-        <div class="k">법인 순수익 (연)${stage ? " · 그대로 갈 때" : ""}</div>
-        <div class="n">${krw(e.net.mid)}</div>
-        <div class="d ${stage && dNet < 0 ? "fail" : ""}">${stage ? `전원 참여 대비 ${signPct(dNet)}` : `범위 ${eokS(e.net.lo)}~${eokS(e.net.hi)}원`}</div>
-      </div>
-      <div class="tile">
-        <div class="k">남은 조합원 평당 배당 (연)</div>
-        <div class="n">${won(e.per.mid)}</div>
-        <div class="d">${perNote}</div>
-      </div>
-      <div class="tile next">
-        <div class="k">다음 할 일</div>
-        ${next}
-      </div>
+    <div class="v-body">
+      <p class="v-sub">${stage ? "그대로 갈 때" : "지금 상태 · 전원 참여"}</p>
+      <div class="metrics">${metrics}</div>
+      ${next}
     </div>`;
+  // 아래 결론 막대: 지도를 누르는 동안 결론 카드가 화면 밖에 있어도 판정을 보인다
+  $("dock").className = `dock t-${tone}`;
+  $("dockTitle").textContent = title;
+  $("dockSub").textContent = stage === 0 ? "" : !best ? "기준을 넘는 대안이 없어요"
+    : best.key === "keep" ? "추천: 그대로 진행" : `추천: ${best.name} · 설득 ${best.persuade}농가`;
+  updateDock();
+}
+let DECIDE_SEEN = true;
+function updateDock() {
+  const show = !!VIEW && VIEW.stage > 0 && !DECIDE_SEEN;
+  $("dock").hidden = !show;
+  document.body.classList.toggle("dock-on", show);
+}
+const PAY_NAMES = { div: "배당형", rent: "고정 임차료", mix: "혼합" };
+// 계산 조건은 접혀 있어도 지금 값을 한 줄로 보인다
+function renderCond() {
+  $("condSum").textContent = `목표 ${krw(S.target)} · ${S.areaMin}ha · ${S.farmMin}명 이상 · ${PAY_NAMES[S.pay]}`;
 }
 
 function renderRefused() {
@@ -321,11 +346,12 @@ function renderRefused() {
     const farm = F.farms.get(f), off = farm.parcels.filter((id) => S.off.has(id));
     return { f, n: off.length, total: farm.parcels.length, area: areaOf(off) };
   });
-  $("refusedCount").textContent = list.length ? `· ${list.length}농가 ${ha(list.reduce((s, r) => s + r.area, 0))}` : "";
+  $("refusedCount").textContent = list.length ? `${list.length}농가 · ${ha(list.reduce((s, r) => s + r.area, 0))}` : "";
+  $("btnReset").hidden = !list.length;
   $("refused").innerHTML = list.length
     ? list.map((r) => `<li><span><b>${esc(r.f)}</b> ${ha(r.area)}<span class="sub">${r.n === r.total ? `필지 ${r.n}개 전체` : `필지 ${r.total}개 중 ${r.n}개`}</span></span>
         <button type="button" class="btn small" data-restore="${esc(r.f)}" aria-label="${esc(r.f)} 참여로 복구">복구</button></li>`).join("")
-    : `<li class="empty">아직 거절한 농가가 없습니다. 지도에서 초록 필지를 누르세요.</li>`;
+    : `<li class="empty">${PARCEL_SVG}<span>아직 거절한 농가가 없어요.<br>지도에서 초록 필지를 누르세요.</span></li>`;
   // 지도의 필지가 손가락보다 작은 휴대폰에서도 정확히 고르도록, 참여 농가를 이름으로도 고른다
   const members = [...F.farms.values()].filter((f) => f.member).sort((a, b) => a.name.localeCompare(b.name, "ko", { numeric: true }));
   $("farmPickList").innerHTML = members.map((f) => {
@@ -345,32 +371,36 @@ const hlFarm = (name) => {
 
 function renderJudge() {
   const o = VIEW.sel, e = o.ev;
-  $("judgeOf").textContent = `· ${o.name}`;
+  $("judgeOf").textContent = `${o.name} · ${ha(e.area)}`;
   const areaPct = Math.min(100, e.area / Math.max(S.areaMin * 1.25, e.area) * 100);
   const minPct = S.areaMin / Math.max(S.areaMin * 1.25, e.area) * 100;
   const areaOk = e.area + 1e-9 >= S.areaMin, farmOk = e.farms >= S.farmMin, conn = e.blocks === 1;
   const ref = Math.max(S.target, VIEW.full.net.hi, 1);
   const lo = ref * 0.5, hi = ref * 1.1, pos = (v) => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100));
   $("judge").innerHTML = `
-    <div class="crit">
-      <span>면적</span><span class="v ${areaOk ? "pass" : "fail"}">${ha(e.area)} ${areaOk ? "✓" : "✗"}</span>
-    </div>
-    <div class="gauge" aria-hidden="true"><i style="width:${areaPct}%;background:${areaOk ? "var(--coop)" : "var(--hole)"}"></i><em style="left:${minPct}%"></em></div>
-    <div class="scale"><span>0</span><span>기준 ${S.areaMin}ha</span></div>
-    <div class="crit" style="margin-top:8px">
-      <span>참여 농가</span><span class="v ${farmOk ? "pass" : "fail"}">${e.farms}명 ${farmOk ? "✓" : "✗"}</span>
-      <span>연결성 (권장)</span><span class="v ${conn ? "pass" : "soft"}">${conn ? "한 덩어리 ✓" : `블록 ${e.blocks}개 !`}</span>
-    </div>
-    <h3 style="margin-top:12px">법인 순수익 (연) ${chip(o.v)}</h3>
-    <div class="range" role="img" aria-label="법인 순수익 ${krw(e.net.lo)}에서 ${krw(e.net.hi)}, 기준 ${krw(e.net.mid)}, 목표 ${krw(S.target)}">
-      <div class="track"></div>
-      <div class="band" style="left:${pos(e.net.lo)}%;width:${pos(e.net.hi) - pos(e.net.lo)}%"></div>
-      <div class="dot" style="left:${pos(e.net.mid)}%"></div>
-      <div class="tgt" style="left:${pos(S.target)}%" title="목표"></div>
-    </div>
-    <div class="scale"><span>${eokS(e.net.lo)}원</span><span><b>기준 ${eokS(e.net.mid)}원</b></span><span>${eokS(e.net.hi)}원</span></div>
-    <p class="hint">검은 선 = 목표 ${krw(S.target)} · 전원 참여 기준선 ${krw(VIEW.full.net.mid)}</p>
-    <p class="hint">참고: 면적대로 나누면 평당 배당 ${won(e.per.mid)} (농가 설득용 지표, 3번 탭)</p>`;
+    <div class="jgrid">
+      <div>
+        <div class="jline"><span class="jk">경작 면적</span><b class="jv ${areaOk ? "pass" : "fail"}">${ic(areaOk ? "ok" : "no", areaOk ? "충족" : "미달")}${ha(e.area)}</b></div>
+        <div class="gauge" aria-hidden="true"><i style="width:${areaPct}%;background:${areaOk ? "var(--coop)" : "var(--hole)"}"></i><em style="left:${minPct}%"></em></div>
+        <div class="scale"><span>0</span><span>기준 ${S.areaMin}ha</span></div>
+        <div class="jpair">
+          <div class="jcell"><span class="jk">참여 농가</span><b class="jv ${farmOk ? "pass" : "fail"}">${ic(farmOk ? "ok" : "no", farmOk ? "충족" : "미달")}${e.farms}명</b><span class="jd">기준 ${S.farmMin}명 이상</span></div>
+          <div class="jcell"><span class="jk">연결성 (권장)</span><b class="jv ${conn ? "pass" : "soft"}">${ic(conn ? "ok" : "warn", conn ? "좋음" : "주의")}${conn ? "한 덩어리" : `블록 ${e.blocks}개`}</b><span class="jd">${conn ? "농기계 작업이 끊기지 않아요" : "블록 사이를 오가야 해요"}</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="jline"><span class="jk">법인 순수익 (연)</span>${goalChip(o.v)}</div>
+        <div class="jbig">${krw(e.net.mid)}</div>
+        <div class="range" role="img" aria-label="법인 순수익 ${krw(e.net.lo)}에서 ${krw(e.net.hi)}, 기준 ${krw(e.net.mid)}, 목표 ${krw(S.target)}">
+          <div class="track-bar"></div>
+          <div class="band" style="left:${pos(e.net.lo)}%;width:${pos(e.net.hi) - pos(e.net.lo)}%"></div>
+          <div class="dot" style="left:${pos(e.net.mid)}%"></div>
+          <div class="tgt" style="left:${pos(S.target)}%" title="목표"></div>
+        </div>
+        <div class="scale"><span>${eokS(e.net.lo)}원</span><span><b>기준 ${eokS(e.net.mid)}원</b></span><span>${eokS(e.net.hi)}원</span></div>
+        <p class="hint">검은 선은 목표(${krw(S.target)}), 초록 띠는 최근 6년 작황 범위예요. 면적대로 나누면 평당 ${won(e.per.mid)}이에요.</p>
+      </div>
+    </div>`;
 }
 
 // 단지 중심 보기: 참여 필지, 편입 후보가 될 수 있는 이웃 농가 전체, 보관소 이름표까지 담는 고정 범위.
@@ -440,31 +470,37 @@ function renderMap() {
 
   const e = sel.ev;
   const dKm = (e.routeKm - VIEW.full.routeKm) * P.OPS;
-  $("mapNote").innerHTML = `<span class="stage-tag s${VIEW.stage}">${STAGE[VIEW.stage]}</span> 선택한 안: <b>${esc(sel.name)}</b> · ${ha(e.area)} · 블록 ${e.blocks}개 · 트랙터 이동 연 ${(e.routeKm * P.OPS).toFixed(1)}km <span class="muted">(전원 참여 대비 ${dKm >= 0 ? "+" : "−"}${Math.abs(dKm).toFixed(1)}km)</span>`;
+  $("mapNote").innerHTML = `지도에 표시 중: <b>${esc(sel.name)}</b> · ${ha(e.area)} · 블록 ${e.blocks}개 · 트랙터 연 ${(e.routeKm * P.OPS).toFixed(1)}km <span class="muted">(전원 참여 대비 ${dKm >= 0 ? "+" : "−"}${Math.abs(dKm).toFixed(1)}km)</span>`;
 }
 
 const SHOW = 5;
 function renderOptions() {
   const all = VIEW.ranked;
+  if (!S.off.size) {
+    $("optTable").innerHTML = `<div class="empty">${PARCEL_SVG}<p><b>거절이 나오면 여기에 대안이 떠요</b>메울 땅, 경작권 교환 같은 대안을 순위대로 보여 드려요.</p></div>`;
+    return;
+  }
   // 순위권 상위 5개 + 기준 미달 안은 늘 보이고, 나머지 순위권 대안은 접어 둔다
-  const visible = all.filter((o, i) => S.showAll || !o.rank || o.rank <= SHOW || o.key === S.sel);
+  const visible = all.filter((o) => S.showAll || !o.rank || o.rank <= SHOW || o.key === S.sel);
   const hiddenN = all.length - visible.length;
-  const rows = visible.map((o) => {
+  const cards = visible.map((o) => {
     const e = o.ev, isSel = o.key === S.sel;
-    return `<tr class="opt ${isSel ? "sel" : ""} ${o.meets ? "" : "dis"}" data-key="${esc(o.key)}" tabindex="0" aria-selected="${isSel}">
-      <td>${o.rank ? `<span class="rank">${o.rank}</span>` : "–"}</td>
-      <td>${esc(o.name)}<span class="sub">${esc(o.sub)}</span>${o.meets ? "" : `<span class="why">${esc(o.why)}</span>`}</td>
-      <td class="num" data-label="면적">${e.area.toFixed(1)}<span class="unit-m">ha</span></td>
-      <td class="num" data-label="설득">${o.persuade}명</td>
-      <td class="num" data-label="순수익(연)" title="${krw(e.net.mid)}"><b>${eokS(e.net.mid)}</b><span class="sub">${(e.net.lo / 1e8).toFixed(2)}~${eokS(e.net.hi)}</span><span class="sub">평당 ${won(e.per.mid)}</span></td>
-      <td>${o.meets ? chip(o.v) : `<span class="chip na">기준 미달</span>`}</td>
-    </tr>`;
+    const badge = o.rank ? `<span class="o-badge${o.rank === 1 ? " first" : ""}">${o.rank}순위${o.rank === 1 ? " · 추천" : ""}</span>` : `<span class="o-badge na">기준 미달</span>`;
+    return `<li><button type="button" class="opt${isSel ? " sel" : ""}${o.meets ? "" : " dis"}" data-key="${esc(o.key)}" aria-pressed="${isSel}">
+      ${badge}
+      <span class="o-head"><span class="o-name">${esc(o.name)}</span>${o.meets ? goalChip(o.v) : ""}</span>
+      <span class="o-sub">${esc(o.sub)}</span>
+      ${o.meets ? "" : `<span class="o-why">${esc(o.why)}</span>`}
+      <span class="o-money"><span class="o-k">법인 순수익 (연)</span><b title="${krw(e.net.mid)}">${eokS(e.net.mid)}원</b><span class="o-range">범위 ${eokS(e.net.lo)}~${eokS(e.net.hi)}원</span></span>
+      <span class="o-meta"><span>${ha(e.area)}</span><span>${o.persuade ? `설득 ${o.persuade}농가` : "설득 없음"}</span><span>평당 ${won(e.per.mid)}</span></span>
+      ${isSel ? `<span class="o-on">${ic("ok")}지도에 표시 중</span>` : ""}
+    </button></li>`;
   }).join("");
-  $("optTable").innerHTML = `<table aria-label="대안 비교">
-    <thead><tr><th>순위</th><th>대안</th><th class="num">ha</th><th class="num">설득</th><th class="num">순수익(연)</th><th>판정</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-    ${hiddenN || S.showAll ? `<button type="button" class="btn more" id="btnMore" aria-expanded="${!!S.showAll}">${S.showAll ? "▴ 상위 5개만 보기" : `▾ 나머지 대안 ${hiddenN}개 더 보기`}</button>` : ""}
-    <p class="hint">행을 누르면 지도와 왼쪽 판정이 그 안으로 바뀝니다. 순수익(억 원) 아래 첫 줄은 보수~낙관 범위, 둘째 줄은 면적대로 나눈 평당 배당입니다. 금액에 마우스를 올리면 만 원 단위로 보입니다.</p>`;
+  $("optTable").innerHTML = `<ul class="opts" aria-label="대안 ${all.length}개">${cards}</ul>
+    ${hiddenN || S.showAll ? `<div class="more-row"><button type="button" class="btn" id="btnMore" aria-expanded="${!!S.showAll}">${S.showAll ? "상위 5개만 보기" : `나머지 대안 ${hiddenN}개 더 보기`}</button></div>` : ""}`;
+  // 옆으로 넘기는 휴대폰 화면: 고른 카드가 보이도록 목록만 옆으로 민다(페이지는 움직이지 않는다)
+  const ul = $("optTable").querySelector(".opts"), on = ul.querySelector(".sel");
+  if (on && ul.scrollWidth > ul.clientWidth) ul.scrollLeft = Math.max(0, on.parentElement.offsetLeft - 16);
 }
 
 function bars(items, key, fmt, baseKey) {
@@ -478,15 +514,18 @@ function renderMachine() {
   const uniq = [...new Map(pick.map((o) => [o.key, o])).values()].slice(0, 6);
   const list = [{ label: "전원 참여", ...full }].concat(uniq.map((o) => ({ label: o.name, ...o.ev })));
   const e = sel.ev;
+  const kpi = (k, v) => `<div class="m"><div class="m-k">${k}</div><div class="m-v">${v}</div></div>`;
   $("machine").innerHTML = `
     <div class="kpis">
-      <div class="kpi"><div class="k">작업시간 (연)</div><div class="n">${Math.round(e.hours)}h</div></div>
-      <div class="kpi"><div class="k">트랙터 이동 (연)</div><div class="n">${(e.routeKm * P.OPS).toFixed(1)}km</div></div>
-      <div class="kpi"><div class="k">부대 기계비 (연)</div><div class="n">${man(e.machineWon)}</div></div>
+      ${kpi("작업시간 (연)", `${Math.round(e.hours)}시간`)}
+      ${kpi("트랙터 이동 (연)", `${(e.routeKm * P.OPS).toFixed(1)}km`)}
+      ${kpi("부대 기계비 (연)", man(e.machineWon))}
     </div>
-    <h3>작업시간 비교</h3>${bars(list, "hours", (v) => `${Math.round(v)}h`, "전원 참여")}
-    <h3>부대 기계비 비교 (세팅 + 이동 + 구멍 주변 회전)</h3>${bars(list, "machineWon", man, "전원 참여")}
-    <p class="hint">선택한 안(${esc(sel.name)})의 부대 기계비는 순수익의 ${(e.machineWon / Math.max(1, e.net.mid + e.machineWon) * 100).toFixed(1)}%입니다.</p>`;
+    <div class="bar-pair">
+      <div><h3 class="sm">작업시간 비교</h3>${bars(list, "hours", (v) => `${Math.round(v)}h`, "전원 참여")}</div>
+      <div><h3 class="sm">부대 기계비 비교</h3>${bars(list, "machineWon", man, "전원 참여")}</div>
+    </div>
+    <p class="hint">부대 기계비는 블록 세팅, 이동, 구멍 주변 회전에 드는 돈이에요. 고른 안(${esc(sel.name)})에서는 순수익의 ${(e.machineWon / Math.max(1, e.net.mid + e.machineWon) * 100).toFixed(1)}%예요.</p>`;
 }
 
 function payFor(perPy) {
@@ -502,12 +541,11 @@ function payoutNums(e) {
   const perShock = (e.area * (P.REV.mid * (1 - s) - P.COST) * 1e4 - e.machineWon) / (e.area * P.PY_PER_HA);
   return { p0: payFor(e.per.mid), p1: payFor(perShock), pLo: payFor(e.per.lo), pHi: payFor(e.per.hi) };
 }
-const PAY_NAMES = { div: "배당형", rent: "고정 임차료", mix: "혼합" };
 // 흉년 손실을 누가 지는지 (배당형은 조합원, 고정 임차료형은 법인)
 function shockSentence(e, p0, p1) {
-  if (!S.shock) return "작황을 낮추면 흉년 손실을 누가 지는지 보입니다.";
+  if (!S.shock) return "작황을 낮추면 흉년 손실을 누가 지는지 보여요.";
   const coop = p1.rent.coop * e.pyeong;
-  return `흉년(−${S.shock}%)이면 <b>배당형</b>은 조합원이 평당 ${won(p0.div.member - p1.div.member)} 덜 받습니다. <b>고정 임차료형</b>은 조합원 몫은 그대로이고, 법인 유보가 연 ${coop >= 0 ? `${krw(coop)} 남습니다` : `${krw(-coop)} 적자입니다`}.`;
+  return `흉년(−${S.shock}%)이면 <b>배당형</b>은 조합원이 평당 ${won(p0.div.member - p1.div.member)} 덜 받아요. <b>고정 임차료형</b>은 조합원 몫은 그대로이고, 법인 유보가 연 ${coop >= 0 ? `${krw(coop)} 남아요` : `${krw(-coop)} 적자예요`}.`;
 }
 function renderPayout() {
   const e = VIEW.sel.ev;
@@ -526,19 +564,23 @@ function renderPayout() {
     return `<tr><td>${esc(f)}</td><td>${n.toFixed(2)}</td><td>${man(pyeong * p0[S.pay].member)}</td><td class="${p1[S.pay].member < p0[S.pay].member - 0.5 ? "neg" : ""}">${man(pyeong * p1[S.pay].member)}</td></tr>`;
   }).join("");
   const shockLabel = S.shock ? `흉년 −${S.shock}%` : "평년";
+  // 작황 막대를 움직일 때마다 다시 그리므로, 펼쳐 둔 농가별 표는 펼친 채로 둔다
+  const farmOpen = !!$("payout").querySelector(".more-box")?.open;
   $("payout").innerHTML = `
     <p class="lead">${shockSentence(e, p0, p1)}</p>
-    <h3>평당 받는 돈 · ${esc(VIEW.sel.name)}</h3>
-    <table aria-label="지급 방식별 평당 금액">
-      <thead><tr><th>지급 방식</th><th>평년 (범위)</th><th>${shockLabel}</th><th>법인 유보 (${shockLabel})</th></tr></thead>
+    <h3 class="sm">평당 받는 돈 · ${esc(VIEW.sel.name)}</h3>
+    <div class="tbl"><table aria-label="지급 방식별 평당 금액">
+      <thead><tr><th>지급 방식</th><th>평년 (범위)</th><th>${shockLabel}</th><th>법인 유보</th></tr></thead>
       <tbody>${["div", "rent", "mix"].map(row).join("")}</tbody>
-    </table>
-    <h3 style="margin-top:14px">농가별 배당금 (${names[S.pay]}, 연)</h3>
-    <table aria-label="농가별 배당금">
-      <thead><tr><th>농가</th><th>면적(ha)</th><th>평년</th><th>${shockLabel}</th></tr></thead>
-      <tbody>${farmRows}</tbody>
-    </table>
-    <p class="hint">흉년은 총수입만 줄이고 생산비는 그대로 둡니다. 배당형은 손실이 나면 0원이고, 그 손실은 법인 유보에 표시됩니다.</p>`;
+    </table></div>
+    <details class="more-box"${farmOpen ? " open" : ""}>
+      <summary>농가별 배당금 보기 · ${names[S.pay]}, ${byFarm.size}농가</summary>
+      <div class="tbl"><table aria-label="농가별 배당금">
+        <thead><tr><th>농가</th><th>면적(ha)</th><th>평년</th><th>${shockLabel}</th></tr></thead>
+        <tbody>${farmRows}</tbody>
+      </table></div>
+    </details>
+    <p class="hint">흉년은 총수입만 줄이고 생산비는 그대로 둬요. 배당형은 손실이 나면 0원이고, 그 손실은 법인 유보에 표시돼요.</p>`;
 }
 
 // ---------------------------------------------------------------- 설명 자료 (인쇄용 한 장)
@@ -646,7 +688,7 @@ function setHover(id) {
   document.querySelectorAll("#map [data-id]").forEach((x) => x.classList.toggle("hl", grp.has(Number(x.dataset.id))));
   const p = id === null ? null : F.parcels[id];
   $("hoverInfo").textContent = !p ? "" : p.member
-    ? (S.unit === "farm" ? `${p.owner} · 필지 ${grp.size}개가 함께 선택됩니다` : `${p.owner}의 필지 한 칸`)
+    ? (S.unit === "farm" ? `${p.owner} · 필지 ${grp.size}개가 함께 선택돼요` : `${p.owner}의 필지 한 칸`)
     : p.bg ? `${p.use} · 편입 대상 아님` : `${p.owner} · 비참여 (${F.farms.get(p.owner).area.toFixed(1)}ha) · 편입 후보`;
 }
 function selectTab(n) {
@@ -655,7 +697,7 @@ function selectTab(n) {
 }
 function init() {
   if (!window.EF_DATA) {
-    document.querySelector(".layout").innerHTML = `<p class="card">실측 단지 데이터(data/empty-field-heunghae.js)를 찾지 못했습니다. <code>python -m server.realdata.empty_field</code>로 만든 뒤 다시 여세요.</p>`;
+    document.querySelector(".wrap").innerHTML = `<p class="card">실측 단지 데이터(data/empty-field-heunghae.js)를 찾지 못했습니다. <code>python -m server.realdata.empty_field</code>로 만든 뒤 다시 여세요.</p>`;
     return;
   }
   F = loadField(window.EF_DATA);
@@ -679,22 +721,24 @@ function init() {
   });
   $("optTable").addEventListener("click", (ev) => {
     if (ev.target.closest("#btnMore")) { S.showAll = !S.showAll; renderOptions(); $("btnMore")?.focus(); return; }
-    const tr = ev.target.closest("tr[data-key]"); if (tr) { S.sel = tr.dataset.key; recompute(); }
+    // 카드를 다시 그려도 누른 카드에 포커스를 돌려준다 (키보드 사용자)
+    const b = ev.target.closest("[data-key]"); if (!b) return;
+    S.sel = b.dataset.key; recompute();
+    $("optTable").querySelector(`[data-key="${CSS.escape(S.sel)}"]`)?.focus({ preventScroll: true });
   });
-  $("optTable").addEventListener("keydown", (ev) => { const tr = ev.target.closest("tr[data-key]"); if (tr && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); S.sel = tr.dataset.key; recompute(); document.querySelector(`tr[data-key="${CSS.escape(S.sel)}"]`)?.focus(); } });
   $("inTarget").addEventListener("input", (ev) => { S.target = (Number(ev.target.value) || 0) * 1e4; recompute(); flash(`목표 순수익 ${krw(S.target)}`); });
   $("inFarmMin").addEventListener("input", (ev) => { S.farmMin = Number(ev.target.value) || 0; recompute(); flash(`최소 참여 농가 ${S.farmMin}명`); });
   $("inShock").addEventListener("input", (ev) => { S.shock = Number(ev.target.value); renderPayout(); });
   bindSeg("segArea", "areaMin", Number, "면적 기준");
   bindSeg("segPay", "pay", String, "지급 방식");
   [1, 2, 3].forEach((i) => $(`tab${i}`).addEventListener("click", () => selectTab(i)));
-  $("btnReset").addEventListener("click", () => { S.off.clear(); S.sel = null; recompute(); flash("처음 상태로"); });
+  $("btnReset").addEventListener("click", () => { S.off.clear(); S.sel = null; recompute(); flash("모두 복구"); $("farmPick").querySelector("summary").focus(); });
   $("refused").addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-restore]"); if (!b) return;
     const f = b.dataset.restore;
     F.farms.get(f).parcels.forEach((id) => S.off.delete(id));
     S.sel = null; recompute(); flash(`${f} 복구`);
-    ($("refused").querySelector("[data-restore]") || $("btnReset")).focus();
+    ($("refused").querySelector("[data-restore]") || $("farmPick").querySelector("summary")).focus();
   });
   $("farmPickList").addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-farm]"); if (!b) return;
@@ -703,12 +747,21 @@ function init() {
   });
   ["mouseover", "focusin"].forEach((t) => $("farmPickList").addEventListener(t, (ev) => hlFarm(ev.target.closest("[data-farm]")?.dataset.farm)));
   $("farmPickList").addEventListener("mouseleave", () => hlFarm(null));
+  // 결론 카드: 추천 대안을 지도에서 보기 · 지도로 가기
   $("decide").addEventListener("click", (ev) => {
-    const b = ev.target.closest("[data-pick]"); if (!b) return;
-    S.sel = b.dataset.pick; selectTab(1); recompute();
-    $("map").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    const pick = ev.target.closest("[data-pick]");
+    if (pick) { S.sel = pick.dataset.pick; recompute(); goTo("mapSec"); return; }
+    const go = ev.target.closest("[data-go]"); if (go) goTo(go.dataset.go);
   });
-  $("btnSheet").addEventListener("click", () => { renderSheet(); $("sheetDlg").showModal(); });
+  // 설명 자료 단추는 결론 카드와 아래 막대 두 곳에 있다
+  document.addEventListener("click", (ev) => { if (ev.target.closest("[data-sheet]")) { renderSheet(); $("sheetDlg").showModal(); } });
+  // 아래 결론 막대: 결론 카드가 30% 넘게 가려지면 나타나고, 누르면 결론으로 올라간다
+  $("dockMain").addEventListener("click", () => { goTo("decide"); $("decide").focus({ preventScroll: true }); });
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(([en]) => { DECIDE_SEEN = en.intersectionRatio >= 0.3; updateDock(); }, { threshold: [0, 0.3, 0.6] }).observe($("decide"));
+  }
+  // 계산 조건: 넓은 화면은 펼쳐 두고, 휴대폰은 접어서 지금 값만 한 줄로 보인다
+  $("cond").open = matchMedia("(min-width: 1024px)").matches;
   $("btnClose").addEventListener("click", () => $("sheetDlg").close());
   $("btnPrint").addEventListener("click", () => window.print());
   $("btnCopy").addEventListener("click", async () => {
